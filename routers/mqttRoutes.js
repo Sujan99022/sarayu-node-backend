@@ -3,8 +3,10 @@ const express = require("express");
 const {
   getLatestLiveMessage,
   subscribeToTopic,
+  isTopicSubscribed,
 } = require("../middlewares/mqttHandler");
 const MessageModel = require("../models/mqtt-message-model");
+const AllTopicsModel = require("../models/all-mqtt-messages");
 const moment = require("moment-timezone");
 
 const router = express.Router();
@@ -78,5 +80,82 @@ router.post("/realtime-data/last-2-hours", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
+// POST /api/topics/add/:topic
+router.post("/add", async (req, res) => {
+  try {
+    const { topic } = req.query;
+    const { thresholds } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({ error: "Topic name is required" });
+    }
+
+    if (!Array.isArray(thresholds) || thresholds.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "Thresholds are required and must be an array" });
+    }
+
+    const existingTopic = await AllTopicsModel.findOne({ topic });
+
+    if (existingTopic) {
+      existingTopic.thresholds = thresholds;
+      await existingTopic.save();
+
+      return res.status(200).json({
+        message: "Thresholds updated successfully",
+        topic: existingTopic,
+      });
+    }
+
+    const newTopic = new AllTopicsModel({ topic, thresholds });
+    await newTopic.save();
+
+    res.status(201).json({ topic: newTopic });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
+});
+
+// GET /api/topics/get/:topic
+router.get("/get", async (req, res) => {
+  try {
+    const { topic } = req.query;
+
+    if (!topic) {
+      return res.status(400).json({ error: "Topic name is required" });
+    }
+
+    const topicData = await AllTopicsModel.findOne({ topic });
+    if (!topicData) {
+      return res.status(404).json({ error: "Topic not found" });
+    }
+
+    res.status(200).json({ data: topicData });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
+});
+
+// Route to check if a topic is subscribed
+router.get("/is-subscribed", (req, res) => {
+  const { topic } = req.query;
+
+  if (!topic) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Topic is required" });
+  }
+
+  const isSubscribed = isTopicSubscribed(topic);
+  res.json({ success: true, isSubscribed });
+});
+
+module.exports = router;
 
 module.exports = router;

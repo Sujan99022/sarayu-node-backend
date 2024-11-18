@@ -1,8 +1,8 @@
-// mqttHandler.js
 const awsIot = require("aws-iot-device-sdk");
 const MessageModel = require("../models/mqtt-message-model");
 
 let latestMessages = {}; // Store the latest live message per topic
+let subscribedTopics = new Set(); // Store subscribed topics
 
 // AWS IoT Core device configuration
 const device = awsIot.device({
@@ -43,8 +43,14 @@ const subscribeToTopic = (topic) => {
       console.error(`Failed to subscribe to topic ${topic}`, err);
     } else {
       console.log(`Subscribed to topic ${topic}`);
+      subscribedTopics.add(topic); // Add to subscribed topics set
     }
   });
+};
+
+// Function to check if a topic is subscribed
+const isTopicSubscribed = (topic) => {
+  return subscribedTopics.has(topic); // Check if the topic exists in the set
 };
 
 // Function to get the latest live message from memory
@@ -52,4 +58,4 @@ const getLatestLiveMessage = (topic) => {
   return latestMessages[topic] || null;
 };
 
-module.exports = { subscribeToTopic, getLatestLiveMessage };
+module.exports = { subscribeToTopic, getLatestLiveMessage, isTopicSubscribed };
