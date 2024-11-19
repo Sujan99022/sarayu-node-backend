@@ -4,6 +4,7 @@ const {
   getLatestLiveMessage,
   subscribeToTopic,
   isTopicSubscribed,
+  unsubscribeFromTopic,
 } = require("../middlewares/mqttHandler");
 const MessageModel = require("../models/mqtt-message-model");
 const AllTopicsModel = require("../models/all-mqtt-messages");
@@ -86,7 +87,7 @@ router.post("/add", async (req, res) => {
   try {
     const { topic } = req.query;
     const { thresholds } = req.body;
-
+    console.log(thresholds);
     if (!topic) {
       return res.status(400).json({ error: "Topic name is required" });
     }
@@ -154,6 +155,26 @@ router.get("/is-subscribed", (req, res) => {
 
   const isSubscribed = isTopicSubscribed(topic);
   res.json({ success: true, isSubscribed });
+});
+
+router.post("/unsubscribe", (req, res) => {
+  const { topic } = req.body;
+
+  if (!topic) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Topic is required" });
+  }
+
+  if (!isTopicSubscribed(topic)) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Topic is not subscribed" });
+  }
+
+  unsubscribeFromTopic(topic);
+
+  res.json({ success: true, message: `Unsubscribed from topic: ${topic}` });
 });
 
 module.exports = router;

@@ -48,6 +48,17 @@ const subscribeToTopic = (topic) => {
   });
 };
 
+const unsubscribeFromTopic = (topic) => {
+  device.unsubscribe(topic, (err) => {
+    if (err) {
+      console.error(`Failed to unsubscribe from topic ${topic}`, err);
+    } else {
+      console.log(`Unsubscribed from topic ${topic}`);
+      subscribedTopics.delete(topic); // Remove from subscribed topics set
+    }
+  });
+};
+
 // Function to check if a topic is subscribed
 const isTopicSubscribed = (topic) => {
   return subscribedTopics.has(topic); // Check if the topic exists in the set
@@ -58,4 +69,9 @@ const getLatestLiveMessage = (topic) => {
   return latestMessages[topic] || null;
 };
 
-module.exports = { subscribeToTopic, getLatestLiveMessage, isTopicSubscribed };
+module.exports = {
+  subscribeToTopic,
+  getLatestLiveMessage,
+  isTopicSubscribed,
+  unsubscribeFromTopic,
+};
