@@ -45,11 +45,7 @@ const supervisorSchema = new mongoose.Schema(
     },
     favorites: {
       type: [String],
-      default: [
-        "sarayu/device1/increment",
-        "sarayu/device1/decrement",
-        "sarayu/device1/random",
-      ],
+      default: [],
     },
     role: {
       type: String,
