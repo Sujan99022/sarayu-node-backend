@@ -36,7 +36,7 @@ app.use(
 );
 
 app.use(cookieParser()); // Enable cookie parsing
-// app.use(morgan("dev"));
+app.use(morgan("dev"));
 
 // Socket.IO connection
 io.on("connection", (socket) => {

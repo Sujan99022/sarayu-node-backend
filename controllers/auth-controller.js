@@ -629,12 +629,10 @@ const addFavorite = async (req, res) => {
       await supervisor.save();
     }
 
-    res
-      .status(200)
-      .json({
-        message: "Topic added to favorites",
-        favorites: supervisor.favorites,
-      });
+    res.status(200).json({
+      message: "Topic added to favorites",
+      favorites: supervisor.favorites,
+    });
   } catch (error) {
     res
       .status(500)
@@ -663,12 +661,10 @@ const removeFavorite = async (req, res) => {
       await supervisor.save();
     }
 
-    res
-      .status(200)
-      .json({
-        message: "Topic removed from favorites",
-        favorites: supervisor.favorites,
-      });
+    res.status(200).json({
+      message: "Topic removed from favorites",
+      favorites: supervisor.favorites,
+    });
   } catch (error) {
     res
       .status(500)

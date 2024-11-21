@@ -177,6 +177,119 @@ router.post("/unsubscribe", (req, res) => {
   res.json({ success: true, message: `Unsubscribed from topic: ${topic}` });
 });
 
-module.exports = router;
+// Helper function to get the start and end of a day
+const getDayRange = (date) => {
+  const start = new Date(date.setHours(0, 0, 0, 0));
+  const end = new Date(date.setHours(23, 59, 59, 999));
+  return { start, end };
+};
+
+// Get today's highest value
+router.get("/todays-highest", async (req, res) => {
+  const { topic } = req.query;
+  const { start, end } = getDayRange(new Date());
+
+  try {
+    const result = await MessageModel.aggregate([
+      { $match: { topic } },
+      { $unwind: "$messages" },
+      {
+        $match: {
+          "messages.timestamp": { $gte: start, $lte: end },
+        },
+      },
+      {
+        $addFields: {
+          "messages.message": { $toDouble: "$messages.message" },
+        },
+      },
+      {
+        $sort: { "messages.message": -1 },
+      },
+      { $limit: 1 },
+    ]);
+
+    res
+      .status(200)
+      .json(
+        result.length ? result[0].messages : { message: "No data available" }
+      );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get yesterday's highest value
+router.get("/yesterdays-highest", async (req, res) => {
+  const { topic } = req.query;
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const { start, end } = getDayRange(yesterday);
+
+  try {
+    const result = await MessageModel.aggregate([
+      { $match: { topic } },
+      { $unwind: "$messages" },
+      {
+        $match: {
+          "messages.timestamp": { $gte: start, $lte: end },
+        },
+      },
+      {
+        $addFields: {
+          "messages.message": { $toDouble: "$messages.message" },
+        },
+      },
+      {
+        $sort: { "messages.message": -1 },
+      },
+      { $limit: 1 },
+    ]);
+
+    res
+      .status(200)
+      .json(
+        result.length ? result[0].messages : { message: "No data available" }
+      );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get the highest value in the last 7 days
+router.get("/last-7-days-highest", async (req, res) => {
+  const { topic } = req.query;
+  const last7Days = new Date();
+  last7Days.setDate(last7Days.getDate() - 7);
+
+  try {
+    const result = await MessageModel.aggregate([
+      { $match: { topic } },
+      { $unwind: "$messages" },
+      {
+        $match: {
+          "messages.timestamp": { $gte: last7Days },
+        },
+      },
+      {
+        $addFields: {
+          "messages.message": { $toDouble: "$messages.message" },
+        },
+      },
+      {
+        $sort: { "messages.message": -1 },
+      },
+      { $limit: 1 },
+    ]);
+
+    res
+      .status(200)
+      .json(
+        result.length ? result[0].messages : { message: "No data available" }
+      );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;
