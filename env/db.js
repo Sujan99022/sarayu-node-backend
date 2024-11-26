@@ -6,7 +6,9 @@ const mongoose = require("mongoose");
 // "mongodb+srv://samithrgowda:7zsJuGajQ7ONZicL@srdbcluster.b8lex.mongodb.net/SRDB2?retryWrites=true&w=majority&appName=SRDBCLUSTER"
 const connectDB = () => {
   mongoose
-    .connect("mongodb://localhost:27017/sarayu-project-local-db")
+    .connect(
+      "mongodb+srv://samithrgowda:7zsJuGajQ7ONZicL@srdbcluster.b8lex.mongodb.net/SRDB2?retryWrites=true&w=majority&appName=SRDBCLUSTER"
+    )
     .then(() => {
       console.log("Database connection successfull!");
     })
