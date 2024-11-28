@@ -82,6 +82,77 @@ router.post("/realtime-data/last-2-hours", async (req, res) => {
   }
 });
 
+router.post("/realtime-data/custom-range", async (req, res) => {
+  const { topic, from, to, granularity } = req.body;
+
+  if (!topic || !from || !to || !granularity) {
+    return res
+      .status(400)
+      .json({ error: "Topic, from, to, and granularity are required" });
+  }
+
+  try {
+    const fromDate = moment.tz(from, "Asia/Kolkata").toDate();
+    const toDate = moment.tz(to, "Asia/Kolkata").toDate();
+
+    if (fromDate > toDate) {
+      return res
+        .status(400)
+        .json({ error: "'From' date cannot be later than 'To' date" });
+    }
+
+    const data = await MessageModel.findOne({
+      topic,
+      messages: { $elemMatch: { timestamp: { $gte: fromDate, $lte: toDate } } },
+    }).select({
+      messages: {
+        $filter: {
+          input: "$messages",
+          as: "message",
+          cond: {
+            $and: [
+              { $gte: ["$$message.timestamp", fromDate] },
+              { $lte: ["$$message.timestamp", toDate] },
+            ],
+          },
+        },
+      },
+    });
+
+    if (!data || !data.messages || data.messages.length === 0) {
+      return res.json({ topic, messages: [] });
+    }
+
+    // Process data based on granularity
+    const groupedMessages = processMessages(data.messages, granularity);
+
+    res.json({ success: true, topic, messages: groupedMessages });
+  } catch (error) {
+    console.error("Error fetching custom range data:", error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// Helper function to group and average messages
+function processMessages(messages, granularity) {
+  const grouped = {};
+
+  messages.forEach((msg) => {
+    const timeKey = moment(msg.timestamp).startOf(granularity).toISOString();
+    if (!grouped[timeKey]) {
+      grouped[timeKey] = { count: 0, sum: 0 };
+    }
+    grouped[timeKey].count += 1;
+    grouped[timeKey].sum += msg.message;
+  });
+
+  // Convert grouped data into the desired format
+  return Object.entries(grouped).map(([time, { count, sum }]) => ({
+    timestamp: time,
+    message: sum / count,
+  }));
+}
+
 // POST /api/topics/add/:topic
 router.post("/add", async (req, res) => {
   try {
