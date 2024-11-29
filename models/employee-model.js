@@ -48,6 +48,10 @@ const employeeSchema = new mongoose.Schema(
         "sarayu/device1/water",
       ],
     },
+    favorites: {
+      type: [String],
+      default: [],
+    },
     role: {
       type: String,
       default: "employee",

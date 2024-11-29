@@ -36,8 +36,10 @@ const {
   resetPasswordForEmployee,
   resetPasswordForManager,
   subscribeToEmployeeTopic,
-  addFavorite,
-  removeFavorite,
+  addFavoriteSupervisor,
+  removeFavoriteSupervisor,
+  addFavoriteEmployee,
+  removeFavoriteEmployee,
 } = require("../controllers/auth-controller");
 const router = express.Router();
 
@@ -100,7 +102,9 @@ router.post("/supervisor/reset-password", resetPasswordForSupervisor);
 router.post("/employee/reset-password", resetPasswordForEmployee);
 router.post("/subscribeToEmployeeTopic", subscribeToEmployeeTopic);
 
-router.post("/:id/favorites", addFavorite);
-router.delete("/:id/favorites", removeFavorite);
+router.post("/supervisor/:id/favorites", addFavoriteSupervisor);
+router.delete("/supervisor/:id/favorites", removeFavoriteSupervisor);
+router.post("/employee/:id/favorites", addFavoriteEmployee);
+router.delete("/employee/:id/favorites", removeFavoriteEmployee);
 
 module.exports = router;
