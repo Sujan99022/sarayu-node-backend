@@ -610,7 +610,7 @@ const subscribeToEmployeeTopic = asyncHandler(async (req, res, next) => {
   });
 });
 
-const addFavorite = async (req, res) => {
+const addFavoriteSupervisor = async (req, res) => {
   try {
     const { id } = req.params;
     const { topic } = req.body;
@@ -641,7 +641,7 @@ const addFavorite = async (req, res) => {
 };
 
 // Remove a topic from favorites
-const removeFavorite = async (req, res) => {
+const removeFavoriteSupervisor = async (req, res) => {
   try {
     const { id } = req.params;
     const { topic } = req.body;
@@ -651,6 +651,67 @@ const removeFavorite = async (req, res) => {
     }
 
     const supervisor = await Supervisor.findById(id);
+    if (!supervisor) {
+      return res.status(404).json({ message: "Supervisor not found" });
+    }
+
+    const index = supervisor.favorites.indexOf(topic);
+    if (index !== -1) {
+      supervisor.favorites.splice(index, 1);
+      await supervisor.save();
+    }
+
+    res.status(200).json({
+      message: "Topic removed from favorites",
+      favorites: supervisor.favorites,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error removing favorite", error: error.message });
+  }
+};
+const addFavoriteEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { topic } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({ message: "Topic is required" });
+    }
+
+    const supervisor = await Employee.findById(id);
+    if (!supervisor) {
+      return res.status(404).json({ message: "Supervisor not found" });
+    }
+
+    if (!supervisor.favorites.includes(topic)) {
+      supervisor.favorites.push(topic);
+      await supervisor.save();
+    }
+
+    res.status(200).json({
+      message: "Topic added to favorites",
+      favorites: supervisor.favorites,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error adding favorite", error: error.message });
+  }
+};
+
+// Remove a topic from favorites
+const removeFavoriteEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { topic } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({ message: "Topic is required" });
+    }
+
+    const supervisor = await Employee.findById(id);
     if (!supervisor) {
       return res.status(404).json({ message: "Supervisor not found" });
     }
@@ -709,6 +770,8 @@ module.exports = {
   resetPasswordForEmployee,
   resetPasswordForManager,
   subscribeToEmployeeTopic,
-  addFavorite,
-  removeFavorite,
+  addFavoriteSupervisor,
+  removeFavoriteSupervisor,
+  addFavoriteEmployee,
+  removeFavoriteEmployee,
 };

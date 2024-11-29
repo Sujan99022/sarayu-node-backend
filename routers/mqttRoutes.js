@@ -82,6 +82,68 @@ router.post("/realtime-data/last-2-hours", async (req, res) => {
   }
 });
 
+router.post("/report-filter", async (req, res) => {
+  const { topic, from, to, minValue } = req.body;
+  console.log("check body:", req.body);
+
+  // Validate the input
+  if (!topic || !from || !to || minValue === undefined) {
+    return res.status(400).json({
+      error: "Topic, from date, to date, and minValue are required.",
+    });
+  }
+
+  try {
+    // Convert `from` and `to` dates to the correct timezone
+    const fromDate = moment(from).tz("Asia/Kolkata").toDate();
+    const toDate = moment(to).tz("Asia/Kolkata").toDate();
+
+    // Query MongoDB
+    const result = await MessageModel.aggregate([
+      { $match: { topic } }, // Match the correct topic
+      {
+        $project: {
+          topic: 1,
+          messages: {
+            $filter: {
+              input: "$messages",
+              as: "message",
+              cond: {
+                $and: [
+                  { $gte: ["$$message.timestamp", fromDate] },
+                  { $lte: ["$$message.timestamp", toDate] },
+                  { $gte: ["$$message.message", Number(minValue)] },
+                ],
+              },
+            },
+          },
+        },
+      },
+    ]);
+
+    // Check if messages are found
+    if (!result.length || result[0].messages.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "No messages found for the given criteria." });
+    }
+
+    // Sort the messages in descending order of timestamp
+    const sortedMessages = result[0].messages.sort(
+      (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+    );
+
+    // Respond with the filtered and sorted messages
+    res.status(200).json({
+      topic: result[0].topic,
+      messages: sortedMessages,
+    });
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
 router.post("/realtime-data/custom-range", async (req, res) => {
   const { topic, from, to, granularity } = req.body;
 
