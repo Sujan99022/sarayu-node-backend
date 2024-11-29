@@ -4,163 +4,389 @@ const AllTopicsModel = require("../models/all-mqtt-messages");
 const Supervisor = require("../models/supervisor-model");
 const Employee = require("../models/employee-model");
 const sendMail = require("../utils/mail");
+const NodeCache = require("node-cache");
+const { EventEmitter } = require("events");
 
-let latestMessages = {};
-let subscribedTopics = new Set();
-let thresholdStates = {}; // To track the state of threshold crossings for each topic
+const BATCH_SIZE = 10;
+const BATCH_INTERVAL = 1000;
+const MAX_QUEUE_SIZE = 100;
+const MAX_MAIL_RETRIES = 3;
+const MAIL_RETRY_DELAY = 1000;
 
-const device = awsIot.device({
-  keyPath: "./AWS_DATA_CERTIFICATES/Private.key",
-  certPath: "./AWS_DATA_CERTIFICATES/device.crt",
-  caPath: "./AWS_DATA_CERTIFICATES/AmazonRootCA1.pem",
-  clientId: "503561454502",
-  host: "a1uccysxn7j38q-ats.iot.ap-south-1.amazonaws.com",
-});
+class EmailQueue extends EventEmitter {
+  constructor() {
+    super();
+    this.queue = [];
+    this.processing = false;
+    this.processQueue();
+  }
 
-device.on("connect", () => {
-  console.log("Connected to AWS IoT");
-});
+  async addToQueue(emailData) {
+    this.queue.push({
+      ...emailData,
+      retries: 0,
+      timestamp: Date.now(),
+    });
+    this.emit("mailAdded");
+  }
 
-device.on("message", async (topic, payload) => {
-  try {
-    let liveValue;
+  async processQueue() {
+    if (this.processing || this.queue.length === 0) {
+      setTimeout(() => this.processQueue(), 100);
+      return;
+    }
+
+    this.processing = true;
+    const currentTime = Date.now();
 
     try {
-      const messageData = JSON.parse(payload.toString());
-      liveValue = messageData.message.message;
-    } catch (e) {
-      liveValue = parseFloat(payload.toString());
-      console.log(`Received raw data for topic ${topic}:`, liveValue);
-    }
+      const mailPromises = [];
 
-    if (isNaN(liveValue)) {
-      console.log("Received data is not a valid number:", payload.toString());
-      return;
-    }
+      while (this.queue.length > 0) {
+        const email = this.queue[0];
 
-    console.log(`Received live value for topic ${topic}: ${liveValue}`);
-
-    const timestamp = new Date();
-    latestMessages[topic] = { message: { message: liveValue }, timestamp };
-
-    // Save to MongoDB (updated schema)
-    await MessageModel.findOneAndUpdate(
-      { topic },
-      { $push: { messages: { message: liveValue, timestamp } } },
-      { upsert: true, new: true }
-    );
-
-    // Fetch thresholds for the topic
-    const topicThresholds = await AllTopicsModel.findOne({ topic });
-    if (!topicThresholds) {
-      console.log(`No thresholds found for topic ${topic}`);
-      return;
-    }
-
-    // Initialize the threshold state for the topic if not already present
-    if (!thresholdStates[topic]) {
-      thresholdStates[topic] = { orange: false, red: false }; // false means threshold hasn't been crossed yet
-    }
-
-    topicThresholds.thresholds.forEach(async (threshold) => {
-      if (
-        threshold.color === "orange" &&
-        liveValue >= threshold.value &&
-        !thresholdStates[topic].orange
-      ) {
-        // orange threshold crossed for the first time
-        thresholdStates[topic].orange = true; // Set orange threshold to true
-
-        const employees = await Employee.find({ topics: topic });
-        const supervisors = await Supervisor.find({ topics: topic });
-
-        const allRecipients = [
-          ...employees.map((emp) => emp.email),
-          ...supervisors.map((sup) => sup.email),
-        ];
-
-        // Send warning email for orange threshold
-        allRecipients.forEach((email) => {
-          sendMail(
-            email,
-            `Warning: ${topic}`,
-            `The value for ${topic} has crossed the yellow threshold. Current value: ${liveValue}`
+        if (email.retries >= MAX_MAIL_RETRIES) {
+          console.error(
+            `Failed to send email after ${MAX_MAIL_RETRIES} retries:`,
+            email
           );
-        });
-        console.log("Warning mail sent for yellow threshold");
-      } else if (
-        threshold.color === "red" &&
-        liveValue >= threshold.value &&
-        !thresholdStates[topic].red
-      ) {
-        // Red threshold crossed for the first time
-        thresholdStates[topic].red = true; // Set red threshold to true
+          this.queue.shift();
+          continue;
+        }
 
-        const employees = await Employee.find({ topics: topic });
-        const supervisors = await Supervisor.find({ topics: topic });
+        if (
+          email.timestamp + MAIL_RETRY_DELAY > currentTime &&
+          email.retries > 0
+        ) {
+          break;
+        }
 
-        const allRecipients = [
-          ...employees.map((emp) => emp.email),
-          ...supervisors.map((sup) => sup.email),
-        ];
-
-        // Send danger email for red threshold
-        allRecipients.forEach((email) => {
-          sendMail(
-            email,
-            `Danger: ${topic}`,
-            `The value for ${topic} has crossed the red threshold. Current value: ${liveValue}`
-          );
-        });
-        console.log("Danger mail sent for red threshold");
+        const currentEmail = this.queue.shift();
+        mailPromises.push(
+          this.sendMailWithRetry(currentEmail).catch((error) => {
+            console.error("Email sending error:", error);
+            currentEmail.retries++;
+            currentEmail.timestamp = Date.now();
+            this.queue.push(currentEmail);
+          })
+        );
       }
+
+      await Promise.all(mailPromises);
+    } finally {
+      this.processing = false;
+      setTimeout(() => this.processQueue(), 100);
+    }
+  }
+
+  async sendMailWithRetry({ recipients, subject, message, retries }) {
+    try {
+      const sendPromises = recipients.map((recipient) =>
+        sendMail(recipient, subject, message).catch((error) => {
+          console.error(`Failed to send email to ${recipient}:`, error);
+          throw error;
+        })
+      );
+
+      await Promise.all(sendPromises);
+      console.log(
+        `Successfully sent emails to ${recipients.length} recipients`
+      );
+    } catch (error) {
+      if (retries < MAX_MAIL_RETRIES) {
+        throw error;
+      }
+      console.error("Max retries reached for email:", { recipients, subject });
+    }
+  }
+}
+
+class MQTTHandler {
+  constructor() {
+    this.messageQueue = new Map();
+    this.latestMessages = new Map();
+    this.subscribedTopics = new Set();
+    this.thresholdStates = new Map();
+    this.processingBatch = false;
+    this.emailQueue = new EmailQueue();
+
+    this.recipientsCache = new NodeCache({
+      stdTTL: 3600,
+      checkperiod: 600,
+      useClones: false,
     });
 
-    // If value falls below orange or red, reset the state so we can send emails when thresholds are crossed again
-    if (liveValue < 60) {
-      // Assuming 60 as the lower threshold for orange
-      thresholdStates[topic].orange = false; // Reset orange threshold
+    this.thresholdCache = new NodeCache({
+      stdTTL: 1800,
+      checkperiod: 300,
+      useClones: false,
+    });
+
+    this.device = this.initializeDevice();
+    this.initializeMessageBatchProcessing();
+  }
+
+  initializeDevice() {
+    const device = awsIot.device({
+      keyPath:
+        process.env.AWS_KEY_PATH || "./AWS_DATA_CERTIFICATES/Private.key",
+      certPath:
+        process.env.AWS_CERT_PATH || "./AWS_DATA_CERTIFICATES/device.crt",
+      caPath:
+        process.env.AWS_CA_PATH || "./AWS_DATA_CERTIFICATES/AmazonRootCA1.pem",
+      clientId: process.env.AWS_CLIENT_ID || "503561454502",
+      host:
+        process.env.AWS_IOT_HOST ||
+        "a1uccysxn7j38q-ats.iot.ap-south-1.amazonaws.com",
+      reconnectPeriod: 1000,
+      keepalive: 30,
+    });
+
+    device.on("connect", () => {
+      console.log("Connected to AWS IoT");
+      this.resubscribeToTopics();
+    });
+    device.on("message", this.handleMessage.bind(this));
+    device.on("error", (error) => console.error("MQTT Error:", error));
+    device.on("offline", () => console.log("MQTT Client Offline"));
+    device.on("reconnect", () => console.log("MQTT Client Reconnecting"));
+
+    return device;
+  }
+
+  async resubscribeToTopics() {
+    for (const topic of this.subscribedTopics) {
+      this.device.subscribe(topic);
+      console.log(`Resubscribed to topic: ${topic}`);
     }
-    if (liveValue < 80) {
-      // Assuming 80 as the lower threshold for red
-      thresholdStates[topic].red = false; // Reset red threshold
+  }
+
+  initializeMessageBatchProcessing() {
+    setInterval(async () => {
+      if (this.processingBatch) return;
+      try {
+        this.processingBatch = true;
+        await this.processBatch();
+      } finally {
+        this.processingBatch = false;
+      }
+    }, BATCH_INTERVAL);
+  }
+
+  async handleMessage(topic, payload) {
+    try {
+      const value = this.parsePayload(payload);
+      if (value === null) return;
+
+      this.updateLatestMessage(topic, value);
+      this.queueMessage(topic, value);
+      await this.checkThresholds(topic, value);
+    } catch (error) {
+      console.error("Message handling error:", error);
     }
-  } catch (error) {
-    console.error("Error processing message:", error);
   }
-});
 
-function subscribeToTopic(topic) {
-  if (!subscribedTopics.has(topic)) {
-    device.subscribe(topic);
-    subscribedTopics.add(topic);
-    console.log(`Subscribed to topic: ${topic}`);
-  } else {
-    console.log(`Already subscribed to topic: ${topic}`);
+  updateLatestMessage(topic, value) {
+    this.latestMessages.set(topic, {
+      message: { message: value },
+      timestamp: new Date(),
+    });
+  }
+
+  queueMessage(topic, value) {
+    if (!this.messageQueue.has(topic)) {
+      this.messageQueue.set(topic, []);
+    }
+
+    const messages = this.messageQueue.get(topic);
+    messages.push({ value, timestamp: Date.now() });
+
+    if (messages.length > MAX_QUEUE_SIZE) {
+      messages.splice(0, messages.length - MAX_QUEUE_SIZE);
+    }
+  }
+
+  async processBatch() {
+    const batchOperations = [];
+
+    for (const [topic, messages] of this.messageQueue.entries()) {
+      if (messages.length === 0) continue;
+
+      const batch = messages.splice(0, BATCH_SIZE);
+
+      if (batch.length > 0) {
+        batchOperations.push(
+          MessageModel.bulkWrite(
+            batch.map(({ value, timestamp }) => ({
+              updateOne: {
+                filter: { topic },
+                update: {
+                  $push: {
+                    messages: {
+                      message: value,
+                      timestamp: new Date(timestamp),
+                    },
+                  },
+                },
+                upsert: true,
+              },
+            }))
+          )
+        );
+      }
+    }
+
+    if (batchOperations.length > 0) {
+      await Promise.allSettled(batchOperations).then((results) => {
+        results.forEach((result, index) => {
+          if (result.status === "rejected") {
+            console.error(`Batch operation ${index} failed:`, result.reason);
+          }
+        });
+      });
+    }
+  }
+
+  parsePayload(payload) {
+    try {
+      const data = typeof payload === "string" ? payload : payload.toString();
+      const parsed = JSON.parse(data);
+      return parsed.message?.message ?? parseFloat(data);
+    } catch {
+      const value = parseFloat(payload.toString());
+      return isNaN(value) ? null : value;
+    }
+  }
+
+  async getRecipients(topic) {
+    const cached = this.recipientsCache.get(topic);
+    if (cached) return cached;
+
+    try {
+      const [employees, supervisors] = await Promise.all([
+        Employee.find({ topics: topic }).select("email").lean(),
+        Supervisor.find({ topics: topic }).select("email").lean(),
+      ]);
+
+      const recipients = [
+        ...new Set([
+          ...employees.map((emp) => emp.email),
+          ...supervisors.map((sup) => sup.email),
+        ]),
+      ];
+
+      if (recipients.length > 0) {
+        this.recipientsCache.set(topic, recipients);
+      }
+
+      return recipients;
+    } catch (error) {
+      console.error("Error fetching recipients:", error);
+      return [];
+    }
+  }
+
+  async checkThresholds(topic, liveValue) {
+    const thresholds = await this.getThresholds(topic);
+    if (!thresholds?.length) return;
+
+    const topicState = this.thresholdStates.get(topic) || new Map();
+    const alerts = [];
+
+    for (const { color, value, resetValue } of thresholds) {
+      const currentState = topicState.get(color) || false;
+
+      if (liveValue >= value && !currentState) {
+        topicState.set(color, true);
+        alerts.push(
+          this.prepareThresholdAlert(topic, { color, value }, liveValue)
+        );
+      } else if (liveValue < resetValue) {
+        topicState.set(color, false);
+      }
+    }
+
+    this.thresholdStates.set(topic, topicState);
+
+    if (alerts.length > 0) {
+      const recipients = await this.getRecipients(topic);
+      if (recipients.length > 0) {
+        await Promise.all(
+          alerts.map((alert) =>
+            this.emailQueue.addToQueue({
+              recipients,
+              subject: alert.subject,
+              message: alert.message,
+            })
+          )
+        );
+      }
+    }
+  }
+
+  async getThresholds(topic) {
+    const cached = this.thresholdCache.get(topic);
+    if (cached) return cached.thresholds;
+
+    try {
+      const topicData = await AllTopicsModel.findOne({ topic })
+        .select("thresholds")
+        .lean();
+      if (topicData) {
+        this.thresholdCache.set(topic, topicData);
+        return topicData.thresholds;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching thresholds:", error);
+      return null;
+    }
+  }
+
+  prepareThresholdAlert(topic, threshold, liveValue) {
+    return {
+      subject: `${threshold.color === "red" ? "Danger" : "Warning"}: ${topic}`,
+      message: `The value for ${topic} has crossed the ${
+        threshold.color
+      } threshold. Current value: ${liveValue}\n\nTimestamp: ${new Date().toISOString()}`,
+    };
+  }
+
+  subscribeToTopic(topic) {
+    if (!this.subscribedTopics.has(topic)) {
+      this.device.subscribe(topic);
+      this.subscribedTopics.add(topic);
+      this.messageQueue.set(topic, []);
+      console.log(`Subscribed to topic: ${topic}`);
+    }
+  }
+
+  unsubscribeFromTopic(topic) {
+    if (this.subscribedTopics.has(topic)) {
+      this.device.unsubscribe(topic);
+      this.subscribedTopics.delete(topic);
+      this.messageQueue.delete(topic);
+      this.latestMessages.delete(topic);
+      this.thresholdStates.delete(topic);
+      console.log(`Unsubscribed from topic: ${topic}`);
+    }
+  }
+
+  getLatestLiveMessage(topic) {
+    return this.latestMessages.get(topic) || null;
+  }
+
+  isTopicSubscribed(topic) {
+    return this.subscribedTopics.has(topic);
   }
 }
 
-function getLatestLiveMessage(topic) {
-  return latestMessages[topic] || null;
-}
-
-function isTopicSubscribed(topic) {
-  return subscribedTopics.has(topic);
-}
-
-function unsubscribeFromTopic(topic) {
-  if (subscribedTopics.has(topic)) {
-    device.unsubscribe(topic);
-    subscribedTopics.delete(topic);
-    console.log(`Unsubscribed from topic: ${topic}`);
-  } else {
-    console.log(`Not subscribed to topic: ${topic}`);
-  }
-}
+// Create singleton instance
+const mqttHandler = new MQTTHandler();
 
 module.exports = {
-  subscribeToTopic,
-  getLatestLiveMessage,
-  isTopicSubscribed,
-  unsubscribeFromTopic,
+  subscribeToTopic: mqttHandler.subscribeToTopic.bind(mqttHandler),
+  getLatestLiveMessage: mqttHandler.getLatestLiveMessage.bind(mqttHandler),
+  isTopicSubscribed: mqttHandler.isTopicSubscribed.bind(mqttHandler),
+  unsubscribeFromTopic: mqttHandler.unsubscribeFromTopic.bind(mqttHandler),
 };
