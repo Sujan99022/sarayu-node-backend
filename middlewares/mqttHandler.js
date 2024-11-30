@@ -12,6 +12,7 @@ const BATCH_INTERVAL = 1000;
 const MAX_QUEUE_SIZE = 100;
 const MAX_MAIL_RETRIES = 3;
 const MAIL_RETRY_DELAY = 1000;
+const THRESHOLD_COOLDOWN_PERIOD = 30000; // 30 seconds
 
 class EmailQueue extends EventEmitter {
   constructor() {
@@ -173,10 +174,53 @@ class MQTTHandler {
     }, BATCH_INTERVAL);
   }
 
+  parsePayload(payload) {
+    try {
+      const payloadStr =
+        typeof payload === "string" ? payload : payload.toString();
+
+      try {
+        const jsonParsed = JSON.parse(payloadStr);
+
+        if (jsonParsed && typeof jsonParsed === "object") {
+          if (jsonParsed.message && jsonParsed.message.message !== undefined) {
+            return jsonParsed.message.message;
+          }
+
+          if (jsonParsed.message !== undefined) {
+            const numValue = parseFloat(jsonParsed.message);
+            return !isNaN(numValue) ? numValue : jsonParsed.message;
+          }
+        }
+
+        const numValue = parseFloat(jsonParsed);
+        return !isNaN(numValue) ? numValue : null;
+      } catch (jsonError) {
+        const numValue = parseFloat(payloadStr);
+        return !isNaN(numValue) ? numValue : null;
+      }
+    } catch (error) {
+      console.error("Payload parsing error:", error);
+      return null;
+    }
+  }
+
   async handleMessage(topic, payload) {
     try {
       const value = this.parsePayload(payload);
-      if (value === null) return;
+
+      console.log(`Received message on topic ${topic}:`, {
+        originalPayload: payload.toString(),
+        parsedValue: value,
+      });
+
+      if (value === null) {
+        console.warn(
+          `Unable to parse payload for topic ${topic}:`,
+          payload.toString()
+        );
+        return;
+      }
 
       this.updateLatestMessage(topic, value);
       this.queueMessage(topic, value);
@@ -247,17 +291,6 @@ class MQTTHandler {
     }
   }
 
-  parsePayload(payload) {
-    try {
-      const data = typeof payload === "string" ? payload : payload.toString();
-      const parsed = JSON.parse(data);
-      return parsed.message?.message ?? parseFloat(data);
-    } catch {
-      const value = parseFloat(payload.toString());
-      return isNaN(value) ? null : value;
-    }
-  }
-
   async getRecipients(topic) {
     const cached = this.recipientsCache.get(topic);
     if (cached) return cached;
@@ -290,38 +323,62 @@ class MQTTHandler {
     const thresholds = await this.getThresholds(topic);
     if (!thresholds?.length) return;
 
+    const sortedThresholds = [...thresholds].sort((a, b) => b.value - a.value);
+
     const topicState = this.thresholdStates.get(topic) || new Map();
-    const alerts = [];
+    const currentTime = Date.now();
+    let higherThresholdTriggered = false;
+    for (const { color, value, resetValue } of sortedThresholds) {
+      const stateKey = `${color}-${value}`;
+      const currentState = topicState.get(stateKey) || {
+        triggered: false,
+        lastAlertTime: 0,
+      };
 
-    for (const { color, value, resetValue } of thresholds) {
-      const currentState = topicState.get(color) || false;
+      console.log(`Checking ${color} threshold for ${topic}:`, {
+        liveValue,
+        thresholdValue: value,
+        resetValue,
+        currentState,
+      });
 
-      if (liveValue >= value && !currentState) {
-        topicState.set(color, true);
-        alerts.push(
-          this.prepareThresholdAlert(topic, { color, value }, liveValue)
-        );
+      if (liveValue >= value) {
+        const cooldownPassed =
+          currentTime - currentState.lastAlertTime >= THRESHOLD_COOLDOWN_PERIOD;
+
+        if (!currentState.triggered || cooldownPassed) {
+          console.log(`${color} threshold crossed for ${topic}`);
+          if (higherThresholdTriggered) continue;
+
+          topicState.set(stateKey, {
+            triggered: true,
+            lastAlertTime: currentTime,
+          });
+
+          const recipients = await this.getRecipients(topic);
+          if (recipients.length > 0) {
+            const alert = {
+              recipients,
+              ...this.prepareThresholdAlert(topic, { color, value }, liveValue),
+            };
+            await this.emailQueue.addToQueue(alert);
+
+            higherThresholdTriggered = true;
+            if (color === "red") {
+              break;
+            }
+          }
+        }
       } else if (liveValue < resetValue) {
-        topicState.set(color, false);
+        console.log(`Resetting ${color} threshold state for ${topic}`);
+        topicState.set(stateKey, {
+          triggered: false,
+          lastAlertTime: 0,
+        });
       }
     }
 
     this.thresholdStates.set(topic, topicState);
-
-    if (alerts.length > 0) {
-      const recipients = await this.getRecipients(topic);
-      if (recipients.length > 0) {
-        await Promise.all(
-          alerts.map((alert) =>
-            this.emailQueue.addToQueue({
-              recipients,
-              subject: alert.subject,
-              message: alert.message,
-            })
-          )
-        );
-      }
-    }
   }
 
   async getThresholds(topic) {
@@ -344,11 +401,24 @@ class MQTTHandler {
   }
 
   prepareThresholdAlert(topic, threshold, liveValue) {
+    const alertType = threshold.color === "red" ? "Danger" : "Warning";
+    const severity = threshold.color === "red" ? "critical" : "warning";
+
     return {
-      subject: `${threshold.color === "red" ? "Danger" : "Warning"}: ${topic}`,
-      message: `The value for ${topic} has crossed the ${
-        threshold.color
-      } threshold. Current value: ${liveValue}\n\nTimestamp: ${new Date().toISOString()}`,
+      subject: `${alertType}: ${topic} Threshold Exceeded`,
+      message: `
+  ${alertType} Alert for ${topic}
+  
+  Current Value: ${liveValue}
+  Threshold: ${threshold.value}
+  Severity: ${severity}
+  Timestamp: ${new Date().toISOString()}
+  
+  ${
+    threshold.color === "red"
+      ? "IMMEDIATE ACTION REQUIRED: Critical threshold exceeded!"
+      : "WARNING: Monitor situation closely."
+  }`,
     };
   }
 
@@ -373,7 +443,9 @@ class MQTTHandler {
   }
 
   getLatestLiveMessage(topic) {
-    return this.latestMessages.get(topic) || null;
+    const message = this.latestMessages.get(topic);
+    console.log(`Retrieving latest message for topic ${topic}:`, message);
+    return message || null;
   }
 
   isTopicSubscribed(topic) {
@@ -381,7 +453,6 @@ class MQTTHandler {
   }
 }
 
-// Create singleton instance
 const mqttHandler = new MQTTHandler();
 
 module.exports = {
