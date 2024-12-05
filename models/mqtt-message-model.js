@@ -2,13 +2,13 @@
 const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema({
-  message: { type: Number, required: true }, // Store the numeric value of the message
-  timestamp: { type: Date, index: true, default: Date.now }, // Timestamp of the message
+  message: { type: Number, required: true },
+  timestamp: { type: Date, index: true, default: Date.now },
 });
 
 const mqttMessageSchema = new mongoose.Schema({
-  topic: { type: String, required: true, unique: true }, // Topic to identify the messages
-  messages: [messageSchema], // Array of messages with the correct schema
+  topic: { type: String, required: true, unique: true },
+  messages: [messageSchema],
 });
 
 module.exports = mongoose.model("MqttMessage", mqttMessageSchema);

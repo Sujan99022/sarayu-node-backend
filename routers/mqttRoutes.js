@@ -25,6 +25,48 @@ router.post("/subscribe", (req, res) => {
   res.json({ success: true, message: `Subscribed to topic: ${topic}` });
 });
 
+router.post("/create-tagname", async (req, res) => {
+  try {
+    const { topic } = req.body;
+    const existingMessage = await MessageModel.findOne({ topic });
+    if (existingMessage) {
+      return res.status(400).json({
+        success: false,
+        message: "TagName already exists!",
+      });
+    }
+
+    await MessageModel.create({ topic, messages: [] });
+    res.status(201).json({
+      success: true,
+      data: [],
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
+router.get("/get-all-tagname", async (req, res) => {
+  try {
+    const topics = await MessageModel.find({}, { topic: 1, _id: 0 }).sort({
+      _id: -1,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: topics,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
 // Route to fetch the latest live message for a specific topic
 router.post("/messages", (req, res) => {
   const { topic } = req.body;
