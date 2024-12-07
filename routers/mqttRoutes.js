@@ -51,13 +51,126 @@ router.post("/create-tagname", async (req, res) => {
 
 router.get("/get-all-tagname", async (req, res) => {
   try {
-    const topics = await MessageModel.find({}, { topic: 1, _id: 0 }).sort({
-      _id: -1,
-    });
+    const topics = await MessageModel.aggregate([
+      {
+        $project: {
+          topic: 1,
+          isEmpty: { $eq: [{ $size: "$messages" }, 0] },
+        },
+      },
+      { $sort: { _id: -1 } },
+    ]);
 
     res.status(200).json({
       success: true,
       data: topics,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
+router.get("/get-recent-5-tagname", async (req, res) => {
+  try {
+    const topics = await MessageModel.find(
+      { messages: { $size: 0 } },
+      { topic: 1, _id: 0 }
+    )
+      .sort({ _id: -1 })
+      .limit(5);
+
+    res.status(200).json({
+      success: true,
+      data: topics,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
+router.delete("/delete-topic/:topic", async (req, res) => {
+  try {
+    const { topic } = req.params;
+    const message = await MessageModel.findOne({ topic });
+    if (!message) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No topic found" });
+    }
+    await message.deleteOne();
+    res.status(200).json({ success: true, message: "Topic deleted" });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
+router.post("/subscribe-to-all", async (req, res) => {
+  try {
+    const topics = await MessageModel.find({}, { topic: 1, _id: 0 });
+    if (!topics.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No topics found to subscribe to.",
+      });
+    }
+
+    topics.forEach((t) => {
+      subscribeToTopic(t.topic);
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Subscribed to all topics successfully.",
+      data: topics.map((t) => t.topic),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
+router.post("/unsubscribe-from-all", async (req, res) => {
+  try {
+    const topics = await MessageModel.find({}, { topic: 1, _id: 0 });
+
+    if (!topics.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No topics found to unsubscribe from.",
+      });
+    }
+
+    const unsubscribedTopics = [];
+
+    topics.forEach((t) => {
+      if (isTopicSubscribed(t.topic)) {
+        unsubscribeFromTopic(t.topic);
+        unsubscribedTopics.push(t.topic);
+      }
+    });
+
+    if (!unsubscribedTopics.length) {
+      return res.status(400).json({
+        success: false,
+        message: "No topics were subscribed.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Unsubscribed from all subscribed topics successfully.",
+      data: unsubscribedTopics,
     });
   } catch (error) {
     res.status(500).json({
