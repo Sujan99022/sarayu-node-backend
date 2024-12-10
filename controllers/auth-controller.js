@@ -733,6 +733,189 @@ const removeFavoriteEmployee = async (req, res) => {
   }
 };
 
+const addTagnamesToTheEmployee = async (req, res, next) => {
+  const { id } = req.params;
+  const { topics } = req.body;
+
+  if (!Array.isArray(topics) || topics.length === 0) {
+    return res.status(400).json({ error: "Topics must be a non-empty array." });
+  }
+
+  try {
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      id,
+      { $addToSet: { topics: { $each: topics } } },
+      { new: true }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ error: "Employee not found." });
+    }
+
+    return res.status(200).json({
+      message: "Topics updated successfully.",
+      employee: updatedEmployee,
+    });
+  } catch (error) {
+    console.error("Error updating topics:", error);
+    return res
+      .status(500)
+      .json({ error: "An error occurred while updating topics." });
+  }
+};
+
+const addTagnamesToTheSupervisor = async (req, res, next) => {
+  const { id } = req.params;
+  const { topics } = req.body;
+
+  if (!Array.isArray(topics) || topics.length === 0) {
+    return res.status(400).json({ error: "Topics must be a non-empty array." });
+  }
+
+  try {
+    const updatedEmployee = await Supervisor.findByIdAndUpdate(
+      id,
+      { $addToSet: { topics: { $each: topics } } },
+      { new: true }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ error: "Supervisor not found." });
+    }
+
+    return res.status(200).json({
+      message: "Topics updated successfully.",
+      Supervisor: updatedEmployee,
+    });
+  } catch (error) {
+    console.error("Error updating topics:", error);
+    return res
+      .status(500)
+      .json({ error: "An error occurred while updating topics." });
+  }
+};
+
+const addTagnamesToTheManager = async (req, res, next) => {
+  const { id } = req.params;
+  const { topics } = req.body;
+
+  if (!Array.isArray(topics) || topics.length === 0) {
+    return res.status(400).json({ error: "Topics must be a non-empty array." });
+  }
+
+  try {
+    const updatedEmployee = await Manager.findByIdAndUpdate(
+      id,
+      { $addToSet: { topics: { $each: topics } } },
+      { new: true }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ error: "Manager not found." });
+    }
+
+    return res.status(200).json({
+      message: "Topics updated successfully.",
+      Manager: updatedEmployee,
+    });
+  } catch (error) {
+    console.error("Error updating topics:", error);
+    return res
+      .status(500)
+      .json({ error: "An error occurred while updating topics." });
+  }
+};
+
+const deleteTagnamesToTheEmployee = async (req, res) => {
+  const { id } = req.params;
+  const { topic } = req.body;
+
+  if (!topic || typeof topic !== "string") {
+    return res.status(400).json({ error: "A valid topic must be provided." });
+  }
+
+  try {
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      id,
+      { $pull: { topics: topic } },
+      { new: true }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ error: "Employee not found." });
+    }
+
+    return res.status(200).json({
+      message: "Topic deleted successfully.",
+      employee: updatedEmployee,
+    });
+  } catch (error) {
+    console.error("Error deleting topic:", error);
+    return res
+      .status(500)
+      .json({ error: "An error occurred while deleting the topic." });
+  }
+};
+const deleteTagnamesToTheSupervisor = async (req, res) => {
+  const { id } = req.params;
+  const { topic } = req.body;
+
+  if (!topic || typeof topic !== "string") {
+    return res.status(400).json({ error: "A valid topic must be provided." });
+  }
+
+  try {
+    const updatedEmployee = await Supervisor.findByIdAndUpdate(
+      id,
+      { $pull: { topics: topic } },
+      { new: true }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ error: "Supervisor not found." });
+    }
+
+    return res.status(200).json({
+      message: "Topic deleted successfully.",
+      Supervisor: updatedEmployee,
+    });
+  } catch (error) {
+    console.error("Error deleting topic:", error);
+    return res
+      .status(500)
+      .json({ error: "An error occurred while deleting the topic." });
+  }
+};
+const deleteTagnamesToTheManager = async (req, res) => {
+  const { id } = req.params;
+  const { topic } = req.body;
+
+  if (!topic || typeof topic !== "string") {
+    return res.status(400).json({ error: "A valid topic must be provided." });
+  }
+
+  try {
+    const updatedEmployee = await Manager.findByIdAndUpdate(
+      id,
+      { $pull: { topics: topic } },
+      { new: true }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ error: "Manager not found." });
+    }
+
+    return res.status(200).json({
+      message: "Topic deleted successfully.",
+      Manager: updatedEmployee,
+    });
+  } catch (error) {
+    console.error("Error deleting topic:", error);
+    return res
+      .status(500)
+      .json({ error: "An error occurred while deleting the topic." });
+  }
+};
 module.exports = {
   login,
   createCompany,
@@ -774,4 +957,10 @@ module.exports = {
   removeFavoriteSupervisor,
   addFavoriteEmployee,
   removeFavoriteEmployee,
+  addTagnamesToTheEmployee,
+  deleteTagnamesToTheEmployee,
+  addTagnamesToTheSupervisor,
+  deleteTagnamesToTheSupervisor,
+  addTagnamesToTheManager,
+  deleteTagnamesToTheManager,
 };
