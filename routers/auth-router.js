@@ -40,6 +40,12 @@ const {
   removeFavoriteSupervisor,
   addFavoriteEmployee,
   removeFavoriteEmployee,
+  addTagnamesToTheEmployee,
+  deleteTagnamesToTheEmployee,
+  addTagnamesToTheSupervisor,
+  deleteTagnamesToTheSupervisor,
+  addTagnamesToTheManager,
+  deleteTagnamesToTheManager,
 } = require("../controllers/auth-controller");
 const router = express.Router();
 
@@ -49,11 +55,11 @@ router.route("/company/:companyId").get(getSingleCompany);
 router.route("/companies/:id").delete(deleteCompany);
 router.route("/deleteAnyEmployee/:id").delete(deleteAnyEmployeeCompany);
 router.route("/admin/login").post(adminLogin);
-router.route("/manager/:companyId").get(companyManager);
+// router.route("/manager/:companyId").get(companyManager);
 router.route("/getallmanager/:companyId").get(getAllManager);
 router.route("/manager/:id").delete(deleteManager);
 router.route("/manager/login").post(loginAsManager);
-router.route("/manager/:id").post(getSinlgeManager);
+router.route("/manager/:id").get(getSinlgeManager);
 router.route("/manager/create/:companyId").post(createManager);
 router.route("/room/:companyId").post(createRoom).get(getRooms);
 router.route("/supervisor/create/:companyId").post(createSupervisor);
@@ -106,5 +112,11 @@ router.post("/supervisor/:id/favorites", addFavoriteSupervisor);
 router.delete("/supervisor/:id/favorites", removeFavoriteSupervisor);
 router.post("/employee/:id/favorites", addFavoriteEmployee);
 router.delete("/employee/:id/favorites", removeFavoriteEmployee);
+router.post("/employee/assign-topics/:id", addTagnamesToTheEmployee);
+router.put("/employee/delete-topic/:id", deleteTagnamesToTheEmployee);
+router.post("/supervisor/assign-topics/:id", addTagnamesToTheSupervisor);
+router.put("/supervisor/delete-topic/:id", deleteTagnamesToTheSupervisor);
+router.post("/manager/assign-topics/:id", addTagnamesToTheManager);
+router.put("/manager/delete-topic/:id", deleteTagnamesToTheManager);
 
 module.exports = router;
