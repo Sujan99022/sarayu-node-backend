@@ -13,7 +13,10 @@ const supportmailRoute = require("./routers/supportmail-router");
 const http = require("http");
 const socketIo = require("socket.io");
 const mqttRoutes = require("./routers/mqttRoutes");
-const { subscribeToTopic } = require("./middlewares/mqttHandler");
+const {
+  subscribeToTopic,
+  getLatestLiveMessage,
+} = require("./middlewares/mqttHandler");
 
 // Load environment variables from .env file
 dotenv.config({ path: "./.env" });
@@ -41,8 +44,36 @@ app.use(morgan("dev"));
 // Socket.IO connection
 io.on("connection", (socket) => {
   console.log("New client connected");
-  socket.on("disconnect", () => {
-    console.log("Client disconnected");
+  socket.on("subscribeToTopic", (topic) => {
+    if (!topic) {
+      socket.emit("error", { success: false, message: "Topic is required" });
+      return;
+    }
+
+    console.log(`Client subscribed to topic: ${topic}`);
+
+    const intervalId = setInterval(() => {
+      const latestMessage = getLatestLiveMessage(topic);
+
+      if (!latestMessage) {
+        socket.emit("noData", {
+          success: false,
+          message: "No live message available",
+        });
+      } else {
+        socket.emit("liveMessage", { success: true, message: latestMessage });
+      }
+    }, 1000);
+
+    socket.on("disconnect", () => {
+      console.log("Client disconnected");
+      clearInterval(intervalId);
+    });
+
+    socket.on("unsubscribeFromTopic", () => {
+      console.log(`Client unsubscribed from topic: ${topic}`);
+      clearInterval(intervalId);
+    });
   });
 });
 

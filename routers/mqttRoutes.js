@@ -188,8 +188,6 @@ router.post("/messages", (req, res) => {
       .status(400)
       .json({ success: false, message: "Topic is required" });
   }
-
-  // Retrieve the latest live message from memory
   const latestMessage = getLatestLiveMessage(topic);
   if (!latestMessage) {
     return res
