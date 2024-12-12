@@ -323,11 +323,14 @@ class MQTTHandler {
     const thresholds = await this.getThresholds(topic);
     if (!thresholds?.length) return;
 
+    console.log("testThreshold :", thresholds);
     const sortedThresholds = [...thresholds].sort((a, b) => b.value - a.value);
 
     const topicState = this.thresholdStates.get(topic) || new Map();
     const currentTime = Date.now();
-    let higherThresholdTriggered = false;
+
+    let dangerTriggered = false;
+
     for (const { color, value, resetValue } of sortedThresholds) {
       const stateKey = `${color}-${value}`;
       const currentState = topicState.get(stateKey) || {
@@ -343,12 +346,17 @@ class MQTTHandler {
       });
 
       if (liveValue >= value) {
+        if (color === "red") {
+          dangerTriggered = true;
+        } else if (dangerTriggered) {
+          continue;
+        }
+
         const cooldownPassed =
           currentTime - currentState.lastAlertTime >= THRESHOLD_COOLDOWN_PERIOD;
 
         if (!currentState.triggered || cooldownPassed) {
           console.log(`${color} threshold crossed for ${topic}`);
-          if (higherThresholdTriggered) continue;
 
           topicState.set(stateKey, {
             triggered: true,
@@ -362,11 +370,10 @@ class MQTTHandler {
               ...this.prepareThresholdAlert(topic, { color, value }, liveValue),
             };
             await this.emailQueue.addToQueue(alert);
+          }
 
-            higherThresholdTriggered = true;
-            if (color === "red") {
-              break;
-            }
+          if (color === "red") {
+            break;
           }
         }
       } else if (liveValue < resetValue) {
