@@ -34,17 +34,22 @@ const supervisorSchema = new mongoose.Schema(
     },
     topics: {
       type: [String],
-      default: [
-        "sarayu/device1/increment",
-        "sarayu/device1/decrement",
-        "sarayu/device1/random",
-        "sarayu/device1/random1",
-        "sarayu/device1/random2",
-        "sarayu/device1/water",
-      ],
+      default: [],
     },
     favorites: {
       type: [String],
+      default: [],
+    },
+    assignedDigitalMeters: {
+      type: [
+        {
+          topic: String,
+          meterType: String,
+          minValue: Number,
+          maxValue: Number,
+          ticks: Array,
+        },
+      ],
       default: [],
     },
     role: {
@@ -70,7 +75,13 @@ supervisorSchema.pre("save", async function (next) {
 // Method to generate the jwt token for the logged-in or signed-up users
 supervisorSchema.methods.getToken = function () {
   return jwt.sign(
-    { id: this._id, name: this.name, email: this.email, role: this.role },
+    {
+      id: this._id,
+      name: this.name,
+      email: this.email,
+      role: this.role,
+      assignedDigitalMeters: this.assignedDigitalMeters,
+    },
     process.env.JWT_SECRET,
     {
       expiresIn: "3d",

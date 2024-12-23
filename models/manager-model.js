@@ -27,6 +27,18 @@ const managerSchema = new mongoose.Schema(
       select: false,
       required: [true, "Password is required"],
     },
+    assignedDigitalMeters: {
+      type: [
+        {
+          topic: String,
+          meterType: String,
+          minValue: Number,
+          maxValue: Number,
+          ticks: Array,
+        },
+      ],
+      default: [],
+    },
     role: {
       type: String,
       default: "manager",
@@ -50,7 +62,13 @@ managerSchema.pre("save", async function (next) {
 // method to generate the jwt token for the loggedin or signedup users
 managerSchema.methods.getToken = function () {
   return jwt.sign(
-    { id: this._id, name: this.name, email: this.email, role: this.role },
+    {
+      id: this._id,
+      name: this.name,
+      email: this.email,
+      role: this.role,
+      assignedDigitalMeters: this.assignedDigitalMeters,
+    },
     process.env.JWT_SECRET,
     {
       expiresIn: "3d",

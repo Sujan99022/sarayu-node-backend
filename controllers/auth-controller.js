@@ -916,6 +916,100 @@ const deleteTagnamesToTheManager = async (req, res) => {
       .json({ error: "An error occurred while deleting the topic." });
   }
 };
+
+// digitalmeter assign constroller for employee
+const assignDigitalMeterToEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const employee = await Employee.findById(id);
+    if (!employee) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+    Object.assign(employee, updates);
+    const { assignedDigitalMeters } = updates;
+    if (assignedDigitalMeters) {
+      employee.assignedDigitalMeters = [];
+      for (const meter of assignedDigitalMeters) {
+        let existingMeter = employee.assignedDigitalMeters.find(
+          (m) => m.topic === meter.topic
+        );
+        if (existingMeter) {
+          Object.assign(existingMeter, meter);
+        } else {
+          employee.assignedDigitalMeters.push(meter);
+        }
+      }
+    }
+    await employee.save();
+    res.status(200).json(employee);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// digitalmeter assign constroller for supervisor
+const assignDigitalMeterToSupervisor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const supervisor = await Supervisor.findById(id);
+    if (!supervisor) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+    Object.assign(supervisor, updates);
+    const { assignedDigitalMeters } = updates;
+    if (assignedDigitalMeters) {
+      supervisor.assignedDigitalMeters = [];
+      for (const meter of assignedDigitalMeters) {
+        let existingMeter = supervisor.assignedDigitalMeters.find(
+          (m) => m.topic === meter.topic
+        );
+        if (existingMeter) {
+          Object.assign(existingMeter, meter);
+        } else {
+          supervisor.assignedDigitalMeters.push(meter);
+        }
+      }
+    }
+    await supervisor.save();
+    res.status(200).json(supervisor);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// digitalmeter assign constroller for supervisor
+const assignDigitalMeterToManager = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const manager = await Manager.findById(id);
+    if (!manager) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+    Object.assign(manager, updates);
+    const { assignedDigitalMeters } = updates;
+    if (assignedDigitalMeters) {
+      manager.assignedDigitalMeters = [];
+      for (const meter of assignedDigitalMeters) {
+        let existingMeter = manager.assignedDigitalMeters.find(
+          (m) => m.topic === meter.topic
+        );
+        if (existingMeter) {
+          Object.assign(existingMeter, meter);
+        } else {
+          manager.assignedDigitalMeters.push(meter);
+        }
+      }
+    }
+    await manager.save();
+    res.status(200).json(manager);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 module.exports = {
   login,
   createCompany,
@@ -963,4 +1057,7 @@ module.exports = {
   deleteTagnamesToTheSupervisor,
   addTagnamesToTheManager,
   deleteTagnamesToTheManager,
+  assignDigitalMeterToEmployee,
+  assignDigitalMeterToSupervisor,
+  assignDigitalMeterToManager,
 };
