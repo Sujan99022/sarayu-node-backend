@@ -22,11 +22,6 @@ const employeeSchema = new mongoose.Schema(
       ref: "Company",
       required: true,
     },
-    // room: {
-    //   type: mongoose.Schema.Types.ObjectId,
-    //   ref: "Room",
-    //   required: true,
-    // },
     supervisor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Supervisor",
@@ -44,6 +39,18 @@ const employeeSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    assignedDigitalMeters: {
+      type: [
+        {
+          topic: String,
+          meterType: String,
+          minValue: Number,
+          maxValue: Number,
+          ticks: Array,
+        },
+      ],
+      default: [],
+    },
     role: {
       type: String,
       default: "employee",
@@ -54,7 +61,6 @@ const employeeSchema = new mongoose.Schema(
   }
 );
 
-// Pre-save middleware to hash the password before saving to database
 employeeSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
     return next();
@@ -64,7 +70,6 @@ employeeSchema.pre("save", async function (next) {
   next();
 });
 
-// method to generate the jwt token for the loggedin or signedup users
 employeeSchema.methods.getToken = function () {
   return jwt.sign(
     {
@@ -72,7 +77,7 @@ employeeSchema.methods.getToken = function () {
       name: this.name,
       email: this.email,
       role: this.role,
-      topic: this.mqttTopic,
+      assignedDigitalMeters: this.assignedDigitalMeters,
     },
     process.env.JWT_SECRET,
     {
@@ -81,7 +86,6 @@ employeeSchema.methods.getToken = function () {
   );
 };
 
-//method to verify the user entered password with the existing password in the database
 employeeSchema.methods.verifyPass = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

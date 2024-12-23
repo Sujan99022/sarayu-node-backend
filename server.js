@@ -63,7 +63,7 @@ io.on("connection", (socket) => {
       } else {
         socket.emit("liveMessage", { success: true, message: latestMessage });
       }
-    }, 1000);
+    }, 200);
 
     socket.on("disconnect", () => {
       console.log("Client disconnected");
