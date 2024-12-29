@@ -46,7 +46,7 @@ const employeeSchema = new mongoose.Schema(
           meterType: String,
           minValue: Number,
           maxValue: Number,
-          ticks: Array,
+          ticks: Number,
         },
       ],
       default: [],

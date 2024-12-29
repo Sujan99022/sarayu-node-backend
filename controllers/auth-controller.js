@@ -926,24 +926,30 @@ const assignDigitalMeterToEmployee = async (req, res) => {
     if (!employee) {
       return res.status(404).json({ error: "Employee not found" });
     }
-    Object.assign(employee, updates);
+
     const { assignedDigitalMeters } = updates;
-    if (assignedDigitalMeters) {
-      employee.assignedDigitalMeters = [];
-      for (const meter of assignedDigitalMeters) {
-        let existingMeter = employee.assignedDigitalMeters.find(
-          (m) => m.topic === meter.topic
+    if (assignedDigitalMeters && Array.isArray(assignedDigitalMeters)) {
+      assignedDigitalMeters.forEach((newMeter) => {
+        const existingMeterIndex = employee.assignedDigitalMeters.findIndex(
+          (meter) => meter.topic === newMeter.topic
         );
-        if (existingMeter) {
-          Object.assign(existingMeter, meter);
+        if (existingMeterIndex !== -1) {
+          employee.assignedDigitalMeters[existingMeterIndex] = {
+            ...employee.assignedDigitalMeters[existingMeterIndex],
+            ...newMeter,
+          };
         } else {
-          employee.assignedDigitalMeters.push(meter);
+          employee.assignedDigitalMeters.push(newMeter);
         }
-      }
+      });
     }
+    delete updates.assignedDigitalMeters;
+    Object.assign(employee, updates);
     await employee.save();
+
     res.status(200).json(employee);
   } catch (error) {
+    console.error("Error in assignDigitalMeterToEmployee:", error);
     res.status(400).json({ error: error.message });
   }
 };
@@ -955,57 +961,69 @@ const assignDigitalMeterToSupervisor = async (req, res) => {
     const updates = req.body;
     const supervisor = await Supervisor.findById(id);
     if (!supervisor) {
-      return res.status(404).json({ error: "Employee not found" });
+      return res.status(404).json({ error: "Supervisor not found" });
     }
-    Object.assign(supervisor, updates);
+
     const { assignedDigitalMeters } = updates;
-    if (assignedDigitalMeters) {
-      supervisor.assignedDigitalMeters = [];
-      for (const meter of assignedDigitalMeters) {
-        let existingMeter = supervisor.assignedDigitalMeters.find(
-          (m) => m.topic === meter.topic
+    if (assignedDigitalMeters && Array.isArray(assignedDigitalMeters)) {
+      assignedDigitalMeters.forEach((newMeter) => {
+        const existingMeterIndex = supervisor.assignedDigitalMeters.findIndex(
+          (meter) => meter.topic === newMeter.topic
         );
-        if (existingMeter) {
-          Object.assign(existingMeter, meter);
+        if (existingMeterIndex !== -1) {
+          supervisor.assignedDigitalMeters[existingMeterIndex] = {
+            ...supervisor.assignedDigitalMeters[existingMeterIndex],
+            ...newMeter,
+          };
         } else {
-          supervisor.assignedDigitalMeters.push(meter);
+          supervisor.assignedDigitalMeters.push(newMeter);
         }
-      }
+      });
     }
+    delete updates.assignedDigitalMeters;
+    Object.assign(supervisor, updates);
     await supervisor.save();
+
     res.status(200).json(supervisor);
   } catch (error) {
+    console.error("Error in assignDigitalMeterToSupervisor:", error);
     res.status(400).json({ error: error.message });
   }
 };
 
-// digitalmeter assign constroller for supervisor
+// digitalmeter assign constroller for manager
 const assignDigitalMeterToManager = async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
     const manager = await Manager.findById(id);
     if (!manager) {
-      return res.status(404).json({ error: "Employee not found" });
+      return res.status(404).json({ error: "Manager not found" });
     }
-    Object.assign(manager, updates);
+
     const { assignedDigitalMeters } = updates;
-    if (assignedDigitalMeters) {
-      manager.assignedDigitalMeters = [];
-      for (const meter of assignedDigitalMeters) {
-        let existingMeter = manager.assignedDigitalMeters.find(
-          (m) => m.topic === meter.topic
+    if (assignedDigitalMeters && Array.isArray(assignedDigitalMeters)) {
+      assignedDigitalMeters.forEach((newMeter) => {
+        const existingMeterIndex = manager.assignedDigitalMeters.findIndex(
+          (meter) => meter.topic === newMeter.topic
         );
-        if (existingMeter) {
-          Object.assign(existingMeter, meter);
+        if (existingMeterIndex !== -1) {
+          manager.assignedDigitalMeters[existingMeterIndex] = {
+            ...manager.assignedDigitalMeters[existingMeterIndex],
+            ...newMeter,
+          };
         } else {
-          manager.assignedDigitalMeters.push(meter);
+          manager.assignedDigitalMeters.push(newMeter);
         }
-      }
+      });
     }
+    delete updates.assignedDigitalMeters;
+    Object.assign(manager, updates);
     await manager.save();
+
     res.status(200).json(manager);
   } catch (error) {
+    console.error("Error in assignDigitalMeterToManager:", error);
     res.status(400).json({ error: error.message });
   }
 };
