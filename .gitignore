@@ -99,3 +99,5 @@ config.env
 
 # Windows system files
 Thumbs.db
+
+.codegpt
