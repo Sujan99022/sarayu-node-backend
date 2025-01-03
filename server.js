@@ -1,5 +1,4 @@
-/* This JavaScript code is setting up a Node.js server using Express framework. Here's a breakdown of
-what each part of the code is doing: */
+const winston = require("winston"); // Import Winston for logging
 const connectDB = require("./env/db"); // Import the database connection function
 const express = require("express"); // Import the Express framework
 const morgan = require("morgan"); // Import Morgan, a logging middleware
@@ -26,6 +25,28 @@ const app = express(); // Create an Express application
 const server = http.createServer(app);
 const io = socketIo(server);
 
+// Winston logger setup
+const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.File({ filename: "error.log", level: "error" }),
+    new winston.transports.File({ filename: "combined.log" }),
+  ],
+});
+
+// Add console logging in development environment
+if (process.env.NODE_ENV === "development") {
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.simple(),
+    })
+  );
+}
+
 // Middleware setup
 app.use(express.json());
 app.use(fileupload()); // Enable file uploads
@@ -33,8 +54,7 @@ app.use(express.urlencoded({ extended: false })); // Parse URL-encoded data
 
 app.use(
   cors({
-    // origin: ["http://localhost:3000"], // Allow only this origin
-    origin: "*", // Allow all the origin
+    origin: "*", // Allow all origins
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], // Allow these HTTP methods
   })
 );
@@ -42,16 +62,22 @@ app.use(
 app.use(cookieParser()); // Enable cookie parsing
 app.use(morgan("dev"));
 
+// Add logger for each request
+app.use((req, res, next) => {
+  logger.info(`Requested to: ${req.url}`, {
+    method: req.method,
+    body: req.body,
+  });
+  next();
+});
+
 // Socket.IO connection
 io.on("connection", (socket) => {
-  console.log("New client connected");
   socket.on("subscribeToTopic", (topic) => {
     if (!topic) {
       socket.emit("error", { success: false, message: "Topic is required" });
       return;
     }
-
-    console.log(`Client subscribed to topic: ${topic}`);
 
     const intervalId = setInterval(() => {
       const latestMessage = getLatestLiveMessage(topic);
@@ -67,23 +93,22 @@ io.on("connection", (socket) => {
     }, 1000);
 
     socket.on("disconnect", () => {
-      console.log("Client disconnected");
       clearInterval(intervalId);
     });
 
     socket.on("unsubscribeFromTopic", () => {
-      console.log(`Client unsubscribed from topic: ${topic}`);
       clearInterval(intervalId);
     });
   });
 });
 
-//Routers
+// Routers
 app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/supportmail", supportmailRoute);
 app.use("/api/v1/mqtt", mqttRoutes);
 
 app.set("socketio", io);
+
 // Error handling middleware
 app.use(errorHandler);
 
@@ -103,5 +128,5 @@ server.listen(port, "0.0.0.0", async () => {
       subscribeToTopic(item);
     });
   }
-  console.log(`Listening on port number ${port}`);
+  logger.info(`Listening on port number ${port}`);
 });

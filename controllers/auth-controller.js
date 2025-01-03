@@ -1030,34 +1030,23 @@ const assignDigitalMeterToManager = async (req, res) => {
 };
 
 //to add or to remove the suscribed topics
-const subscribedTopics = async (req, res) => {
-  try {
-    const { topic } = req.body;
-    const foundTopic = await SubscribedTopic.findOne({ topic });
-    if (!foundTopic) {
-      await SubscribedTopic.create({ topic });
-      return res.status(201).json({ success: true, data: [] });
-    } else {
-      await foundTopic.deleteOne();
-      return res.status(200).json({ success: true, data: [] });
-    }
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+const subscribedTopics = asyncHandler(async (req, res) => {
+  const { topic } = req.body;
+  const foundTopic = await SubscribedTopic.findOne({ topic });
+  if (!foundTopic) {
+    await SubscribedTopic.create({ topic });
+    return res.status(201).json({ success: true, data: [] });
+  } else {
+    await foundTopic.deleteOne();
+    return res.status(200).json({ success: true, data: [] });
   }
-};
+});
 
 //to get all the subscribed topics
-const getSubscribedTopics = async (req, res) => {
-  try {
-    const subscribedTopics = await SubscribedTopic.find(
-      {},
-      { _id: 0, topic: 1 }
-    );
-    res.status(200).json({ sucecss: true, data: subscribedTopics });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+const getSubscribedTopics = asyncHandler(async (req, res, next) => {
+  const subscribedTopics = await SubscribedTopic.find({}, { _id: 0, topic: 1 });
+  res.status(200).json({ success: true, data: subscribedTopics });
+});
 
 module.exports = {
   login,
