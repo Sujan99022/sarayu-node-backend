@@ -49,8 +49,9 @@ const {
   assignDigitalMeterToEmployee,
   assignDigitalMeterToSupervisor,
   assignDigitalMeterToManager,
+  subscribedTopics,
+  getSubscribedTopics,
 } = require("../controllers/auth-controller");
-const Employee = require("../models/employee-model");
 const router = express.Router();
 
 router.route("/login").post(login);
@@ -122,6 +123,10 @@ router.post("/supervisor/assign-topics/:id", addTagnamesToTheSupervisor);
 router.put("/supervisor/delete-topic/:id", deleteTagnamesToTheSupervisor);
 router.post("/manager/assign-topics/:id", addTagnamesToTheManager);
 router.put("/manager/delete-topic/:id", deleteTagnamesToTheManager);
+router
+  .route("/subscribedTopics")
+  .post(subscribedTopics)
+  .get(getSubscribedTopics);
 
 // digital meter routes starts here
 router.put("/digitalmeter/employee/:id", assignDigitalMeterToEmployee);

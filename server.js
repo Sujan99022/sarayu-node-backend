@@ -17,6 +17,7 @@ const {
   subscribeToTopic,
   getLatestLiveMessage,
 } = require("./middlewares/mqttHandler");
+const SubscribedTopic = require("./models/subscribed-topic-model");
 
 // Load environment variables from .env file
 dotenv.config({ path: "./.env" });
@@ -63,7 +64,7 @@ io.on("connection", (socket) => {
       } else {
         socket.emit("liveMessage", { success: true, message: latestMessage });
       }
-    }, 200);
+    }, 1000);
 
     socket.on("disconnect", () => {
       console.log("Client disconnected");
@@ -92,6 +93,15 @@ connectDB();
 const port = process.env.PORT || 5000;
 
 // Start the server on port 5000
-server.listen(port, "0.0.0.0", () => {
+server.listen(port, "0.0.0.0", async () => {
+  const SubscribedTopicList = await SubscribedTopic.find(
+    {},
+    { _id: 0, topic: 1 }
+  );
+  if (SubscribedTopicList) {
+    SubscribedTopicList.forEach((item) => {
+      subscribeToTopic(item);
+    });
+  }
   console.log(`Listening on port number ${port}`);
 });
