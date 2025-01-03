@@ -16,10 +16,3 @@ const connectDB = () => {
 };
 
 module.exports = connectDB;
-
-// `mongodb+srv://sujanr:${encodeURIComponent(
-//   "Sujanr@2001"
-// )}@cluster0.iuybdds.mongodb.net/sarayuDatabase?retryWrites=true&w=majority&appName=Cluster0`
-
-//localDB : mongodb://localhost:27017/SRDB
-//cloud : mongodb+srv://samithrgowda:7zsJuGajQ7ONZicL@srdbcluster.b8lex.mongodb.net/?retryWrites=true&w=majority&appName=SRDBCLUSTER
