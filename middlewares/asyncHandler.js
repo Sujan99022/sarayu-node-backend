@@ -1,12 +1,9 @@
-/**
- * The asyncHandler function is a higher-order function that wraps an asynchronous function and handles
- * any errors that may occur during its execution.
- * @param fn - The `fn` parameter in the `asyncHandler` function is a function that represents the
- * asynchronous route handler function in an Express application. This function takes `req` (request),
- * `res` (response), and `next` (next middleware function) as parameters and is expected to perform
- * some asynchronous
- */
+// Async handler wrapper to handle asynchronous functions in Express routes
+// It ensures that any async errors are passed to the error handling middleware
+
 const asyncHandler = (fn) => (req, res, next) =>
+  // Return a Promise that resolves the async function and catches any errors
   Promise.resolve(fn(req, res, next)).catch(next);
 
+// Export the asyncHandler function for use in other files
 module.exports = asyncHandler;
