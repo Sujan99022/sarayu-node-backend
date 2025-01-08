@@ -135,10 +135,10 @@ class MQTTHandler {
         process.env.AWS_CERT_PATH || "./AWS_DATA_CERTIFICATES/device.crt",
       caPath:
         process.env.AWS_CA_PATH || "./AWS_DATA_CERTIFICATES/AmazonRootCA1.pem",
-      clientId: process.env.AWS_CLIENT_ID || "503561454502",
+      clientId: process.env.AWS_CLIENT_ID || "894243850005",
       host:
         process.env.AWS_IOT_HOST ||
-        "a1uccysxn7j38q-ats.iot.ap-south-1.amazonaws.com",
+        "a2ag66d3h3p6j6-ats.iot.ap-south-1.amazonaws.com",
       reconnectPeriod: 1000,
       keepalive: 30,
     });

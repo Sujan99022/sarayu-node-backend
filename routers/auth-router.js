@@ -51,6 +51,10 @@ const {
   assignDigitalMeterToManager,
   subscribedTopics,
   getSubscribedTopics,
+  addDeviceConfig,
+  removeDeviceConfig,
+  updateDeviceConfig,
+  getAllDeviceConfig,
 } = require("../controllers/auth-controller");
 const router = express.Router();
 
@@ -127,6 +131,14 @@ router
   .route("/subscribedTopics")
   .post(subscribedTopics)
   .get(getSubscribedTopics);
+
+// device config route starts gere
+router.route("/deviceconfig").get(getAllDeviceConfig).post(addDeviceConfig);
+router
+  .route("/deviceconfig/:id")
+  .put(updateDeviceConfig)
+  .delete(removeDeviceConfig);
+// device config route ends gere
 
 // digital meter routes starts here
 router.put("/digitalmeter/employee/:id", assignDigitalMeterToEmployee);
