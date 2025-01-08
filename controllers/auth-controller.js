@@ -13,6 +13,7 @@ const bcrypt = require("bcryptjs");
 const { subscribeToDevice } = require("../middlewares/mqttHandler");
 const Supervisor = require("../models/supervisor-model");
 const SubscribedTopic = require("../models/subscribed-topic-model");
+const ConfigDevice = require("../models/config-device");
 
 const login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
@@ -1048,6 +1049,41 @@ const getSubscribedTopics = asyncHandler(async (req, res, next) => {
   res.status(200).json({ success: true, data: subscribedTopics });
 });
 
+// config device starts here
+const addDeviceConfig = asyncHandler(async (req, res, next) => {
+  const { gateway, slaveid, address, functioncode, size } = req.body;
+  const device = await ConfigDevice.create({
+    gateway,
+    slaveid,
+    address,
+    functioncode,
+    size,
+  });
+  res.status(201).json({ success: true, data: device });
+});
+const removeDeviceConfig = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const device = await ConfigDevice.findById(id);
+  if (!device) {
+    return next(new ErrorResponse(`No resource found`, 404));
+  }
+  await device.deleteOne();
+  res.status(200).json({ success: true, data: [] });
+});
+const updateDeviceConfig = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const device = await ConfigDevice.findByIdAndUpdate(id, req.body);
+  if (!device) {
+    return next(new ErrorResponse("No resource found", 404));
+  }
+  res.status(200).json({ success: true, data: device });
+});
+const getAllDeviceConfig = asyncHandler(async (req, res, next) => {
+  const device = await ConfigDevice.find({});
+  res.status(200).json({ success: true, data: device });
+});
+// config device ends here
+
 module.exports = {
   login,
   createCompany,
@@ -1100,4 +1136,8 @@ module.exports = {
   assignDigitalMeterToManager,
   subscribedTopics,
   getSubscribedTopics,
+  addDeviceConfig,
+  removeDeviceConfig,
+  updateDeviceConfig,
+  getAllDeviceConfig,
 };
