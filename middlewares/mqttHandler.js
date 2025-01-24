@@ -84,15 +84,15 @@ class EmailQueue extends EventEmitter {
     try {
       const sendPromises = recipients.map((recipient) =>
         sendMail(recipient, subject, message).catch((error) => {
-          console.error(`Failed to send email to ${recipient}:`, error);
+          // console.error(`Failed to send email to ${recipient}:`, error);
           throw error;
         })
       );
 
       await Promise.all(sendPromises);
-      console.log(
-        `Successfully sent emails to ${recipients.length} recipients`
-      );
+      // console.log(
+      //   `Successfully sent emails to ${recipients.length} recipients`
+      // );
     } catch (error) {
       if (retries < MAX_MAIL_RETRIES) {
         throw error;
@@ -158,7 +158,7 @@ class MQTTHandler {
   async resubscribeToTopics() {
     for (const topic of this.subscribedTopics) {
       this.device.subscribe(topic);
-      console.log(`Resubscribed to topic: ${topic}`);
+      // console.log(`Resubscribed to topic: ${topic}`);
     }
   }
 
@@ -209,10 +209,10 @@ class MQTTHandler {
     try {
       const value = this.parsePayload(payload);
 
-      console.log(`Received message on topic ${topic}:`, {
-        originalPayload: payload.toString(),
-        parsedValue: value,
-      });
+      // console.log(`Received message on topic ${topic}:`, {
+      //   originalPayload: payload.toString(),
+      //   parsedValue: value,
+      // });
 
       if (value === null) {
         console.warn(
@@ -323,7 +323,7 @@ class MQTTHandler {
     const thresholds = await this.getThresholds(topic);
     if (!thresholds?.length) return;
 
-    console.log("testThreshold :", thresholds);
+    // console.log("testThreshold :", thresholds);
     const sortedThresholds = [...thresholds].sort((a, b) => b.value - a.value);
 
     const topicState = this.thresholdStates.get(topic) || new Map();
@@ -338,12 +338,12 @@ class MQTTHandler {
         lastAlertTime: 0,
       };
 
-      console.log(`Checking ${color} threshold for ${topic}:`, {
-        liveValue,
-        thresholdValue: value,
-        resetValue,
-        currentState,
-      });
+      // console.log(`Checking ${color} threshold for ${topic}:`, {
+      //   liveValue,
+      //   thresholdValue: value,
+      //   resetValue,
+      //   currentState,
+      // });
 
       if (liveValue >= value) {
         if (color === "red") {
@@ -356,7 +356,7 @@ class MQTTHandler {
           currentTime - currentState.lastAlertTime >= THRESHOLD_COOLDOWN_PERIOD;
 
         if (!currentState.triggered || cooldownPassed) {
-          console.log(`${color} threshold crossed for ${topic}`);
+          // console.log(`${color} threshold crossed for ${topic}`);
 
           topicState.set(stateKey, {
             triggered: true,
@@ -377,7 +377,7 @@ class MQTTHandler {
           }
         }
       } else if (liveValue < resetValue) {
-        console.log(`Resetting ${color} threshold state for ${topic}`);
+        // console.log(`Resetting ${color} threshold state for ${topic}`);
         topicState.set(stateKey, {
           triggered: false,
           lastAlertTime: 0,
@@ -434,7 +434,7 @@ class MQTTHandler {
       this.device.subscribe(topic);
       this.subscribedTopics.add(topic);
       this.messageQueue.set(topic, []);
-      console.log(`Subscribed to topic: ${topic}`);
+      // console.log(`Subscribed to topic: ${topic}`);
     }
   }
 
@@ -445,13 +445,13 @@ class MQTTHandler {
       this.messageQueue.delete(topic);
       this.latestMessages.delete(topic);
       this.thresholdStates.delete(topic);
-      console.log(`Unsubscribed from topic: ${topic}`);
+      // console.log(`Unsubscribed from topic: ${topic}`);
     }
   }
 
   getLatestLiveMessage(topic) {
     const message = this.latestMessages.get(topic);
-    console.log(`Retrieving latest message for topic ${topic}:`, message);
+    // console.log(`Retrieving latest message for topic ${topic}:`, message);
     return message || null;
   }
 

@@ -55,6 +55,9 @@ const {
   removeDeviceConfig,
   updateDeviceConfig,
   getAllDeviceConfig,
+  assignlayoutToEmployee,
+  assignlayoutToSupervisor,
+  assignlayoutToManager,
 } = require("../controllers/auth-controller");
 const router = express.Router();
 
@@ -139,6 +142,12 @@ router
   .put(updateDeviceConfig)
   .delete(removeDeviceConfig);
 // device config route ends gere
+
+// assign layout to user logic starts here
+router.route(`/layoutassign/employee/:id`).put(assignlayoutToEmployee);
+router.route(`/layoutassign/supervisor/:id`).put(assignlayoutToSupervisor);
+router.route(`/layoutassign/manager/:id`).put(assignlayoutToManager);
+// assign layout to user logic ends here
 
 // digital meter routes starts here
 router.put("/digitalmeter/employee/:id", assignDigitalMeterToEmployee);

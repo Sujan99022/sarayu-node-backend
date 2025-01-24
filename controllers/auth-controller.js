@@ -1084,6 +1084,25 @@ const getAllDeviceConfig = asyncHandler(async (req, res, next) => {
 });
 // config device ends here
 
+const assignlayoutToEmployee = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const { layout } = req.body;
+  await Employee.findByIdAndUpdate(id, { layout });
+  res.status(200).json({ success: true, data: [] });
+});
+const assignlayoutToSupervisor = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const { layout } = req.body;
+  await Supervisor.findByIdAndUpdate(id, { layout });
+  res.status(200).json({ success: true, data: [] });
+});
+const assignlayoutToManager = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const { layout } = req.body;
+  await Manager.findByIdAndUpdate(id, { layout });
+  res.status(200).json({ success: true, data: [] });
+});
+
 module.exports = {
   login,
   createCompany,
@@ -1140,4 +1159,7 @@ module.exports = {
   removeDeviceConfig,
   updateDeviceConfig,
   getAllDeviceConfig,
+  assignlayoutToEmployee,
+  assignlayoutToSupervisor,
+  assignlayoutToManager,
 };
