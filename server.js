@@ -40,13 +40,13 @@ const logger = winston.createLogger({
   ],
 });
 
-if (process.env.NODE_ENV === "development") {
-  logger.add(
-    new winston.transports.Console({
-      format: winston.format.simple(),
-    })
-  );
-}
+// if (process.env.NODE_ENV === "development") {
+//   logger.add(
+//     new winston.transports.Console({
+//       format: winston.format.simple(),
+//     })
+//   );
+// }
 
 // Middleware setup
 app.use(express.json());
@@ -56,7 +56,7 @@ app.use(
   cors({ origin: "*", methods: ["GET", "POST", "PUT", "DELETE", "PATCH"] })
 );
 app.use(cookieParser());
-app.use(morgan("dev"));
+// app.use(morgan("dev"));
 
 // Log each request
 app.use((req, res, next) => {
@@ -89,7 +89,7 @@ io.on("connection", (socket) => {
       } catch (err) {
         logger.error(`Error fetching latest live message: ${err.message}`);
       }
-    }, 1000);
+    }, 100);
 
     socket.on("disconnect", () => clearInterval(intervalId));
     socket.on("unsubscribeFromTopic", () => clearInterval(intervalId));

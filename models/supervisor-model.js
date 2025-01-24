@@ -36,6 +36,10 @@ const supervisorSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    layout: {
+      type: String,
+      default: "layout1",
+    },
     favorites: {
       type: [String],
       default: [],
