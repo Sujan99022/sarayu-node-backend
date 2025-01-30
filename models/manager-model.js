@@ -17,6 +17,10 @@ const managerSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+    topics: {
+      type: [String],
+      default: [],
+    },
     company: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company",

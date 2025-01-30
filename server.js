@@ -89,7 +89,7 @@ io.on("connection", (socket) => {
       } catch (err) {
         logger.error(`Error fetching latest live message: ${err.message}`);
       }
-    }, 100);
+    }, 200);
 
     socket.on("disconnect", () => clearInterval(intervalId));
     socket.on("unsubscribeFromTopic", () => clearInterval(intervalId));

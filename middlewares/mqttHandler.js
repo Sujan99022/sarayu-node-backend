@@ -208,7 +208,6 @@ class MQTTHandler {
   async handleMessage(topic, payload) {
     try {
       const value = this.parsePayload(payload);
-
       // console.log(`Received message on topic ${topic}:`, {
       //   originalPayload: payload.toString(),
       //   parsedValue: value,
@@ -222,9 +221,11 @@ class MQTTHandler {
         return;
       }
 
-      this.updateLatestMessage(topic, value);
-      this.queueMessage(topic, value);
-      await this.checkThresholds(topic, value);
+      this.updateLatestMessage(topic, payload.toString());
+      if (payload.length < 100) {
+        this.queueMessage(topic, value);
+        await this.checkThresholds(topic, value);
+      }
     } catch (error) {
       console.error("Message handling error:", error);
     }
@@ -445,7 +446,7 @@ class MQTTHandler {
       this.messageQueue.delete(topic);
       this.latestMessages.delete(topic);
       this.thresholdStates.delete(topic);
-      // console.log(`Unsubscribed from topic: ${topic}`);
+      console.log(`Unsubscribed from topic: ${topic}`);
     }
   }
 
