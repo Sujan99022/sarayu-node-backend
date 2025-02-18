@@ -84,12 +84,7 @@ public
 .tern-port
 
 # dotenv environment variable files
-.env
-.env.test
-.env.production
-.env.local
-.env.*.local
-config.env
+
 
 # VS Code settings and workspace
 .vscode/
@@ -101,3 +96,4 @@ config.env
 Thumbs.db
 
 .codegpt
+.vercel
