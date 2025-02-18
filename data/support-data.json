@@ -1,0 +1,38 @@
+[
+    {
+      "username": "john_doe",
+      "email": "john.doe@example.com",
+      "subject": "Issue with login",
+      "description": "I am unable to login to my account with my credentials.",
+      "delete": false
+    },
+    {
+      "username": "jane_smith",
+      "email": "jane.smith@example.com",
+      "subject": "Account activation",
+      "description": "I did not receive the account activation email. Please help.",
+      "delete": false
+    },
+    {
+      "username": "alice_johnson",
+      "email": "alice.johnson@example.com",
+      "subject": "Password reset",
+      "description": "I forgot my password and need to reset it.",
+      "delete": false
+    },
+    {
+      "username": "bob_brown",
+      "email": "bob.brown@example.com",
+      "subject": "Billing issue",
+      "description": "There is an incorrect charge on my account for the last month.",
+      "delete": false
+    },
+    {
+      "username": "charlie_davis",
+      "email": "charlie.davis@example.com",
+      "subject": "Feature request",
+      "description": "It would be great if you could add a dark mode to the application.",
+      "delete": false
+    }
+  ]
+  

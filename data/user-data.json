@@ -1,0 +1,68 @@
+[
+    {
+        "name": "sujan",
+        "email": "sujan@gmail.com",
+        "password": "12345678",
+        "role": "manager"
+    },
+    {
+        "name": "John Doe",
+        "email": "john.doe@gmail.com",
+        "password": "Password123",
+        "role": "manager"
+      },
+      {
+        "name": "Jane Smith",
+        "email": "jane.smith@gmail.com",
+        "password": "Password123",
+        "role": "supervisor"
+      },
+      {
+        "name": "Michael Brown",
+        "email": "michael.brown@gmail.com",
+        "password": "Password123",
+        "role": "employee"
+      },
+      {
+        "name": "Emily Davis",
+        "email": "emily.davis@gmail.com",
+        "password": "Password123",
+        "role": "employee"
+      },
+      {
+        "name": "Samith Wilson",
+        "email": "samith@gmail.com",
+        "password": "12345678",
+        "role": "manager"
+      },
+      {
+        "name": "Olivia Martinez",
+        "email": "olivia.martinez@gmail.com",
+        "password": "Password123",
+        "role": "supervisor"
+      },
+      {
+        "name": "James Anderson",
+        "email": "james.anderson@gmail.com",
+        "password": "Password123",
+        "role": "employee"
+      },
+      {
+        "name": "Sophia Thomas",
+        "email": "sophia.thomas@gmail.com",
+        "password": "Password123",
+        "role": "employee"
+      },
+      {
+        "name": "William Taylor",
+        "email": "william.taylor@gmail.com",
+        "password": "Password123",
+        "role": "manager"
+      },
+      {
+        "name": "Ava Moore",
+        "email": "ava.moore@gmail.com",
+        "password": "Password123",
+        "role": "supervisor"
+      }
+    ]

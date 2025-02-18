@@ -1,0 +1,9 @@
+1 aws/d1/s1
+2 aws/d1/s2
+3 aws/d1/s3
+4 aws/d2/s1
+5 aws/d2/s2
+6 aws/d2/s3
+
+
+
