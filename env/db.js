@@ -3,10 +3,11 @@ is an Object Data Modeling (ODM) library for MongoDB and Node.js. Here's a break
 code does: */
 const mongoose = require("mongoose");
 // mongodb://localhost:27017/sarayu-project-local-db
+//ec2 : mongodb://65.1.185.30:27017/sarayu-database-ec2
 // "mongodb+srv://samithrgowda:7zsJuGajQ7ONZicL@srdbcluster.b8lex.mongodb.net/SRDB2?retryWrites=true&w=majority&appName=SRDBCLUSTER"
 const connectDB = () => {
   mongoose
-    .connect(process.env.DATABASE_URL)
+    .connect("mongodb://localhost:27017/sarayu-project-local-db")
     .then(() => {
       console.log("Database connection successfull!");
     })

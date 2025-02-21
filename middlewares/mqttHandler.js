@@ -127,6 +127,12 @@ class MQTTHandler {
     // Initialize MQTT client
     this.client = this.initializeClient();
     this.initializeMessageBatchProcessing();
+
+    // Set up interval to flush threshold cache every 2 minutes
+    setInterval(() => {
+      this.thresholdCache.flushAll();
+      console.log('Threshold cache flushed');
+    }, 120000); // 120000 ms = 2 minutes
   }
 
   initializeClient() {
