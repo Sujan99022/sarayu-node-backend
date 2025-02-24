@@ -52,7 +52,12 @@ io.on("connection", (socket) => {
       subscriptions.set(topic, true);
 
       if (!activeTopics.has(topic)) {
-        activeTopics.set(topic, { clients: new Set(), lastMessage: null, interval: null });
+        activeTopics.set(topic, { 
+          clients: new Set(), 
+          lastMessage: null, 
+          lastSentTime: null, 
+          interval: null 
+        });
         startTopicStream(topic);
       }
 
@@ -78,7 +83,7 @@ io.on("connection", (socket) => {
         topicData.clients.delete(socket.id);
 
         if (topicData.clients.size === 0) {
-          clearInterval(topicData.interval); // Clear interval when no clients are subscribed
+          clearInterval(topicData.interval);
           activeTopics.delete(topic);
         }
       }
@@ -95,7 +100,7 @@ io.on("connection", (socket) => {
         topicData.clients.delete(socket.id);
 
         if (topicData.clients.size === 0) {
-          clearInterval(topicData.interval); // Clear interval when no clients are subscribed
+          clearInterval(topicData.interval);
           activeTopics.delete(topic);
         }
       }
@@ -108,18 +113,27 @@ io.on("connection", (socket) => {
 const startTopicStream = (topic) => {
   const topicData = activeTopics.get(topic);
 
-  // Use a single interval per topic
   topicData.interval = setInterval(async () => {
     try {
+      const currentTime = Date.now();
       const latestMessage = await getLatestLiveMessage(topic);
-      if (latestMessage && (!topicData.lastMessage || topicData.lastMessage.message.message !== latestMessage.message.message)) {
-        io.to(topic).emit("liveMessage", { success: true, message: latestMessage, topic });
-        topicData.lastMessage = latestMessage;
+      if (latestMessage) {
+        const hasChanged = !topicData.lastMessage || 
+                          topicData.lastMessage.message.message !== latestMessage.message.message;
+        const timeSinceLastSent = topicData.lastSentTime ? 
+                                  (currentTime - topicData.lastSentTime) : 
+                                  Infinity;
+
+        if (hasChanged || timeSinceLastSent >= 1000) {
+          io.to(topic).emit("liveMessage", { success: true, message: latestMessage, topic });
+          topicData.lastMessage = latestMessage;
+          topicData.lastSentTime = currentTime;
+        }
       }
     } catch (error) {
       logger.error(`Stream error for ${topic}: ${error.message}`);
     }
-  }, 200); // Adjust interval as needed
+  }, 200);
 };
 
 // Start server after DB connection
