@@ -62,6 +62,10 @@ const {
   removeGraphWatchListEmployee,
   addGraphWatchListSupervisor,
   removeGraphWatchListSupervisor,
+  addFavoriteManager,
+  removeFavoriteManager,
+  addGraphWatchListManager,
+  removeGraphWatchListManager
 } = require("../controllers/auth-controller");
 const router = express.Router();
 
@@ -74,6 +78,10 @@ router.route("/admin/login").post(adminLogin);
 // router.route("/manager/:companyId").get(companyManager);
 router.route("/getallmanager/:companyId").get(getAllManager);
 router.route("/manager/:id").delete(deleteManager);
+
+router.route("/manager/:id/favorites").post(addFavoriteManager);
+router.route("/manager/:id/favorites").delete(removeFavoriteManager);
+
 router.route("/manager/login").post(loginAsManager);
 router.route("/manager/:id").get(getSinlgeManager);
 router.route("/manager/create/:companyId").post(createManager);
@@ -138,6 +146,9 @@ router.delete("/employee/:id/graphwl", removeGraphWatchListEmployee);
 
 router.post("/supervisor/:id/graphwl", addGraphWatchListSupervisor);
 router.delete("/supervisor/:id/graphwl", removeGraphWatchListSupervisor);
+
+router.post("/manager/:id/graphwl", addGraphWatchListManager);
+router.delete("/manager/:id/graphwl", removeGraphWatchListManager);
 
 
 router.post("/employee/assign-topics/:id", addTagnamesToTheEmployee);

@@ -137,7 +137,7 @@ class MQTTHandler {
 
   initializeClient() {
     const options = {
-      host: '192.168.1.172', // Replace with your EC2 instance's IP or domain
+      host: '3.108.236.121', // Replace with your EC2 instance's IP or domain
       port: 1883, // Use 8883 if TLS/SSL is enabled
       protocol: 'mqtt', // Use 'mqtts' if TLS/SSL is enabled
       keepalive: 30,
@@ -145,8 +145,8 @@ class MQTTHandler {
       clean: true,
       connectTimeout: 10000,
       // Uncomment and set the following if authentication is required
-      // username: 'Sarayu',
-      // password: 'IOTteam@123',
+      username: 'Sarayu',
+      password: 'IOTteam@123',
       // Uncomment and set the following if using TLS/SSL
       // ca: fs.readFileSync('path/to/ca.crt'),
       // cert: fs.readFileSync('path/to/client.crt'),

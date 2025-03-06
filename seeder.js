@@ -12,12 +12,12 @@ dotenv.config({ path: "./env/config.env" });
 // const support_data = JSON.parse(
 //   fs.readFileSync("./data/support-data.json", "utf-8")
 // );
-// const admin_data = JSON.parse(
-//   fs.readFileSync("./data/admin-data.json", "utf-8")
-// );
-const topics_data = JSON.parse(
-  fs.readFileSync("./data/topics-data.json", "utf-8")
+const admin_data = JSON.parse(
+  fs.readFileSync("./data/admin-data.json", "utf-8")
 );
+// const topics_data = JSON.parse(
+//   fs.readFileSync("./data/topics-data.json", "utf-8")
+// );
 
 connectDB();
 
@@ -40,6 +40,7 @@ const deleteData = async () => {
     // await User.deleteMany();
     console.log("Data destroyed!");
     // await SupportMail.deleteMany();
+    await MqttMessage.deleteMany()
   } catch (error) {
     console.error("Error deleting data:", error.message);
   } finally {

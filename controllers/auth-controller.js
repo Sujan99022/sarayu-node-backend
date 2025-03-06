@@ -673,6 +673,71 @@ const removeFavoriteSupervisor = async (req, res) => {
       .json({ message: "Error removing favorite", error: error.message });
   }
 };
+
+const addFavoriteManager = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { topic } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({ message: "Topic is required" });
+    }
+
+    const supervisor = await Manager.findById(id);
+    if (!supervisor) {
+      return res.status(404).json({ message: "Manager not found" });
+    }
+
+    if (!supervisor.favorites.includes(topic)) {
+      supervisor.favorites.push(topic);
+      await supervisor.save();
+    }
+
+    res.status(200).json({
+      message: "Topic added to favorites",
+      favorites: supervisor.favorites,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error adding favorite", error: error.message });
+  }
+};
+
+// Remove a topic from favorites
+const removeFavoriteManager = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { topic } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({ message: "Topic is required" });
+    }
+
+    const supervisor = await Manager.findById(id);
+    if (!supervisor) {
+      return res.status(404).json({ message: "Manager not found" });
+    }
+
+    const index = supervisor.favorites.indexOf(topic);
+    if (index !== -1) {
+      supervisor.favorites.splice(index, 1);
+      await supervisor.save();
+    }
+
+    res.status(200).json({
+      message: "Topic removed from favorites",
+      favorites: supervisor.favorites,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error removing favorite", error: error.message });
+  }
+};
+
+
+
 const addFavoriteEmployee = async (req, res) => {
   try {
     const { id } = req.params;
@@ -793,6 +858,8 @@ const removeGraphWatchListEmployee = async (req, res) => {
       .json({ message: "Error removing graphwl", error: error.message });
   }
 };
+
+
 const addGraphWatchListSupervisor = async (req, res) => {
   try {
     const { id } = req.params;
@@ -841,6 +908,72 @@ const removeGraphWatchListSupervisor = async (req, res) => {
     const supervisor = await Supervisor.findById(id);
     if (!supervisor) {
       return res.status(404).json({ message: "Supervisor not found" });
+    }
+
+    const index = supervisor.graphwl.indexOf(topic);
+    if (index !== -1) {
+      supervisor.graphwl.splice(index, 1);
+      await supervisor.save();
+    }
+
+    res.status(200).json({
+      message: "Topic removed from graphwl",
+      graphwl: supervisor.graphwl,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error removing graphwl", error: error.message });
+  }
+};
+const addGraphWatchListManager = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { topic } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({ message: "Topic is required" });
+    }
+
+    const supervisor = await Manager.findById(id);
+    if (!supervisor) {
+      return res.status(404).json({ message: "Manager not found" });
+    }
+
+    if(supervisor.graphwl.length > 3){
+      return next(new ErrorResponse("Maximum limit reached!",400))
+    }
+
+    if (!supervisor.graphwl.includes(topic)) {
+      supervisor.graphwl.push(topic);
+      await supervisor.save();
+    }
+
+    res.status(200).json({
+      message: "Topic added to graphwl",
+      graphwl: supervisor.graphwl,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error adding graphwl",
+      error: error.message,
+    });
+  }
+};
+
+
+const removeGraphWatchListManager = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { topic } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({ message: "Topic is required" });
+    }
+
+    const supervisor = await Manager.findById(id);
+    if (!supervisor) {
+      return res.status(404).json({ message: "Manager not found" });
     }
 
     const index = supervisor.graphwl.indexOf(topic);
@@ -1290,5 +1423,9 @@ module.exports = {
   addGraphWatchListEmployee,
   removeGraphWatchListEmployee,
   addGraphWatchListSupervisor,
-  removeGraphWatchListSupervisor
+  removeGraphWatchListSupervisor,
+  removeFavoriteManager,
+  addFavoriteManager,
+  addGraphWatchListManager,
+  removeGraphWatchListManager,
 };

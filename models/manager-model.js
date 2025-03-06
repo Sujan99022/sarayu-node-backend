@@ -26,6 +26,14 @@ const managerSchema = new mongoose.Schema(
       ref: "Company",
       required: true,
     },
+    favorites: {
+      type: [String],
+      default: [],
+    },
+    graphwl: {
+      type: [String],
+      default: [],
+    },
     password: {
       type: String,
       select: false,
